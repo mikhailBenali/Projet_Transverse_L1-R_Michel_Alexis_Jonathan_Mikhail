@@ -26,25 +26,45 @@ background_x_change = 0
 
 # Personnage
 
-class Sprite(pygame.sprite.Sprite):
+class Joueur(pygame.sprite.Sprite):
 
     def __init__(self):
-        self.images = [pygame.image.load(f) for f in glob(f"Persos/*.png")]
+        self.images_droite = [pygame.image.load(f) for f in glob(f"Persos/perso??.png")]
+        self.images_gauche = [pygame.image.load(f) for f in glob(f"Persos/perso??_gauche.png")]
+        self.orientation = ""
         self.frame = 0
 
-    def afficher(self, x, y):
-        if self.frame < len(self.images):
-            screen.blit(self.images[self.frame], (x, y))
+    def idle(self, x, y):
+        if self.orientation == "droite":
+            screen.blit(self.images_droite[0], (x, y))
+        else:
+            screen.blit(self.images_gauche[0], (x, y))
+
+    def mvt_droite(self, x, y):
+        self.orientation = "droite"
+        if self.frame < len(self.images_droite):
+            screen.blit(self.images_droite[self.frame], (x, y))
             self.frame += 1
             delay(50)
         else:
             self.frame = 0
+            self.mvt_droite(x, y)
+
+    def mvt_gauche(self, x, y):
+
+        self.orientation = "gauche"
+        if self.frame < len(self.images_gauche):
+            screen.blit(self.images_gauche[self.frame], (x, y))
+            self.frame += 1
+            delay(50)
+        else:
+            self.frame = 0
+            self.mvt_gauche(x, y)
 
 
-test = Sprite("New Piskel")
-
-perso_image = pygame.image.load("Perso.png")
+perso = Joueur()
 perso_x = 50
+perso_x_deplacement = 0
 perso_y = 840
 
 font = pygame.font.Font("freesansbold.ttf", 32)
@@ -59,18 +79,31 @@ running = True
 
 while running:
 
+    screen.blit(background_image, (background_x, 0))
+    #screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
 
-    screen.blit(background_image, (background_x, 0))
-    screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
+        if pygame.key.get_pressed()[pygame.K_d]:
+            perso.mvt_droite(perso_x, perso_y)
+            perso_x_deplacement = 5
+        elif pygame.key.get_pressed()[pygame.K_q]:
+            perso.mvt_gauche(perso_x, perso_y)
+            perso_x_deplacement = -5
 
-    screen.blit(perso_image, (perso_x, perso_y))
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_q or event.key == pygame.K_d:
+                perso_x_deplacement = 0
 
-    test.afficher(200, 200)
+    if perso_x_deplacement == 0:
+        perso.idle(perso_x, perso_y)
+
+    perso_x += perso_x_deplacement
 
     pygame.display.update()
