@@ -12,14 +12,14 @@ screen = pygame.display.set_mode((1920, 1080))  # Attention à bien rentrer un t
 # Initialisaiton du titre
 pygame.display.set_caption("Pana pua")
 
-tour_image = pygame.image.load("tour.png")
+tour_image = pygame.image.load("Images/tour.png")
 tour_x = 50
 largeur_tour = 201
 
 taille_tour = 256
 tour_y = 1080 - taille_tour
 
-background_image = pygame.image.load("background.jpg")
+background_image = pygame.image.load("Images/background.jpg")
 background_x = 0
 background_x_change = 0
 
@@ -29,8 +29,8 @@ background_x_change = 0
 class Joueur(pygame.sprite.Sprite):
 
     def __init__(self):
-        self.images_droite = [pygame.image.load(f) for f in glob(f"Persos/perso??.png")]
-        self.images_gauche = [pygame.image.load(f) for f in glob(f"Persos/perso??_gauche.png")]
+        self.images_droite = [pygame.image.load(f) for f in glob(f"Images/Persos/perso??.png")]
+        self.images_gauche = [pygame.image.load(f) for f in glob(f"Images/Persos/perso??_gauche.png")]
         self.orientation = ""
         self.frame = 0
 
@@ -97,8 +97,12 @@ while running:
                 movement = "Gauche"
                 perso_x_deplacement = -5
         if event.type == pygame.KEYUP:
-            perso_x_deplacement = 0
-            movement = False
+            if event.key == pygame.K_d and movement == "Droite":
+                movement = False
+                perso_x_deplacement = 0
+            if event.key == pygame.K_q and movement == "Gauche":
+                movement = False
+                perso_x_deplacement = 0
 
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_q or event.key == pygame.K_d:
