@@ -18,7 +18,7 @@ tour_x = 50
 largeur_tour = 201
 
 taille_tour = 256
-tour_y = 1080 - taille_tour
+tour_y = 700
 
 background_image = pygame.image.load("Images/background.jpg").convert()
 background_x = 0
