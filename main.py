@@ -82,7 +82,7 @@ while running:
 
     screen.blit(background_image, (background_x, 0))
     # screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
-    # suis la
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
