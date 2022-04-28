@@ -76,11 +76,12 @@ def tour(x, y):
 
 # Variable de conditionnement, pour arrêter le programme on passera cette variable à false
 running = True
+movement = False
 
 while running:
 
     screen.blit(background_image, (background_x, 0))
-    #screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
+    # screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -89,17 +90,24 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
-
-        if pygame.key.get_pressed()[pygame.K_d]:
-            perso.mvt_droite(perso_x, perso_y)
-            perso_x_deplacement = 5
-        elif pygame.key.get_pressed()[pygame.K_q]:
-            perso.mvt_gauche(perso_x, perso_y)
-            perso_x_deplacement = -5
+            if event.key == pygame.K_d:
+                movement = "Droite"
+                perso_x_deplacement = 5
+            if event.key == pygame.K_q:
+                movement = "Gauche"
+                perso_x_deplacement = -5
+        if event.type == pygame.KEYUP:
+            perso_x_deplacement = 0
+            movement = False
 
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_q or event.key == pygame.K_d:
                 perso_x_deplacement = 0
+
+    if movement == "Droite":
+        perso.mvt_droite(perso_x, perso_y)
+    elif movement == "Gauche":
+        perso.mvt_gauche(perso_x, perso_y)
 
     if perso_x_deplacement == 0:
         perso.idle(perso_x, perso_y)
