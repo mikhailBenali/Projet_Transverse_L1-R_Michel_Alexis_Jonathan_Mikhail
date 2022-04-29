@@ -1,15 +1,16 @@
+import time
+
 import pygame
 from glob import glob
 
 # Initialisation
-from pygame.time import delay
 
 pygame.init()
 
 # Initialisation de la fenêtre
 screen = pygame.display.set_mode((1920, 1080))  # Attention à bien rentrer un tuple
 
-# Initialisaiton du titre
+# Initialisation du titre
 pygame.display.set_caption("Pana pua")
 
 tour_image = pygame.image.load("tour.png")
@@ -33,6 +34,10 @@ class Joueur(pygame.sprite.Sprite):
         self.images_gauche = [pygame.image.load(f) for f in glob(f"Persos/perso??_gauche.png")]
         self.orientation = ""
         self.frame = 0
+        self.frame_change_time = time.time()
+
+    def change_time(self):
+        self.frame_change_time = time.time()
 
     def idle(self, x, y):
         if self.orientation == "droite":
@@ -43,20 +48,29 @@ class Joueur(pygame.sprite.Sprite):
     def mvt_droite(self, x, y):
         self.orientation = "droite"
         if self.frame < len(self.images_droite):
-            screen.blit(self.images_droite[self.frame], (x, y))
-            self.frame += 1
-            delay(50)
+
+            if time.time() > self.frame_change_time + 0.05:
+                screen.blit(self.images_droite[self.frame], (x, y))
+                self.frame += 1
+                self.change_time()
+            else:
+                screen.blit(self.images_droite[self.frame], (x, y))
+
         else:
             self.frame = 0
             self.mvt_droite(x, y)
 
     def mvt_gauche(self, x, y):
-
         self.orientation = "gauche"
         if self.frame < len(self.images_gauche):
-            screen.blit(self.images_gauche[self.frame], (x, y))
-            self.frame += 1
-            delay(50)
+
+            if time.time() > self.frame_change_time + 0.05:
+                screen.blit(self.images_gauche[self.frame], (x, y))
+                self.frame += 1
+                self.change_time()
+            else:
+                screen.blit(self.images_gauche[self.frame], (x, y))
+
         else:
             self.frame = 0
             self.mvt_gauche(x, y)
