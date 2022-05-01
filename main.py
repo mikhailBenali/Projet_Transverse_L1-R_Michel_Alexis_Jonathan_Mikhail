@@ -1,9 +1,10 @@
 import pygame
+import time
 from glob import glob
 from math import *
 
 # Initialisation
-from pygame.time import delay
+
 
 pygame.init()
 
@@ -23,6 +24,8 @@ tour_y = 700
 background_image = pygame.image.load("Images/background.jpg").convert()
 background_x = 0
 background_x_change = 0
+
+clock = pygame.time.Clock()
 
 
 # Personnage
@@ -46,18 +49,17 @@ class Joueur(pygame.sprite.Sprite):
         if self.frame < len(self.images_droite):
             screen.blit(self.images_droite[self.frame], (x, y))
             self.frame += 1
-            delay(50)   #TODO:Mettre le timer pour les frame en global, c'est ce qui fait actuellement lag le jeu
+
         else:
             self.frame = 0
             self.mvt_droite(x, y)
 
     def mvt_gauche(self, x, y):
-
         self.orientation = "gauche"
         if self.frame < len(self.images_gauche):
             screen.blit(self.images_gauche[self.frame], (x, y))
             self.frame += 1
-            delay(50)
+
         else:
             self.frame = 0
             self.mvt_gauche(x, y)
@@ -76,7 +78,7 @@ class Arrow(object):
         vely = sin(radians(angle)) * arrow_power
 
         distx = velx * time  # distance
-        disty = (vely * time) + ((-4.9 * arrow_time**2)/2)  # 4.9 = gravité
+        disty = (vely * time) + ((-4.9 * arrow_time ** 2) / 2)  # 4.9 = gravité
 
         newx = round(distx + startx)
         newy = round(starty - disty)
@@ -134,9 +136,8 @@ def redraw():
 
     # Affichage arc
     angle = find_angle(pos)
-    bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle-45)
+    bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle - 45)
     screen.blit(bowImg, (bow_x, bow_y))
-
 
 
 font = pygame.font.Font("freesansbold.ttf", 32)
@@ -205,7 +206,7 @@ while running:
                 rotation_angle = 0
                 shoot = True
                 time = 0
-                power = -sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2)/6
+                power = -sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
                 angle = find_angle(pos)
 
         elif event.type == pygame.KEYUP:
@@ -214,5 +215,6 @@ while running:
 
     perso_x += perso_x_deplacement
     bow_x = perso_x + 40
+    clock.tick(60)
 
     pygame.display.update()
