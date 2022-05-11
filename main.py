@@ -2,6 +2,7 @@ import pygame
 import time
 from glob import glob
 from math import *
+import random
 
 # Initialisation
 
@@ -67,6 +68,33 @@ class Joueur(pygame.sprite.Sprite):
             self.mvt_gauche(x, y)
 
 
+perso = Joueur()
+perso_x = 50
+perso_x_deplacement = 0
+perso_y = 840
+
+
+class Sprite:
+    def __init__(self, dossier):
+        self.images = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/{dossier}/*.png")]
+        self.frame = 0
+        self.temps_derniere_frame = 0
+
+    def afficher(self, x, y):
+        self.temps_derniere_frame = time.time()
+        screen.blit(self.images, x, y)
+
+    def changer_frame(self):
+        if time.time() > self.temps_derniere_frame + 500:
+            self.frame += 1
+
+
+slimes = [Sprite("slime") for i in range(5)]
+slimes_x_pos = [random.randint(1920, 2600) for slime in slimes]
+slimes_y = 800
+slimes_x_deplacement = [random.randint(1, 8) for slime in slimes]
+
+
 class Arrow(object):
     def __init__(self, arrow_x, arrow_y, image):
         self.x = arrow_x
@@ -106,6 +134,7 @@ def find_angle(position):
     new_angle = abs(new_angle - 180)
     return new_angle
 
+
 def redraw():
     print(f"", movement)
     screen.blit(background_image, (background_x, 0))
@@ -136,10 +165,6 @@ def tour(x, y):
     screen.blit(tour_image, (x, y))
 
 
-perso = Joueur()
-perso_x = 50
-perso_x_deplacement = 0
-perso_y = 840
 bow_x = perso_x + 40
 bow_y = perso_y + 50
 arrow = Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/arrow.png").convert_alpha())
@@ -201,7 +226,6 @@ while running:
                 initial_pos = pygame.mouse.get_pos()
                 bow_pos_calc = True
 
-
         if event.type == pygame.MOUSEBUTTONUP:
             if not shoot and drawline:
                 drawline = False
@@ -223,4 +247,6 @@ while running:
     bow_x = perso_x + 40
     clock.tick(60)
 
+    for slime in slimes:
+        slime.afficher(slimes_x_pos, slimes_y)
     pygame.display.update()
