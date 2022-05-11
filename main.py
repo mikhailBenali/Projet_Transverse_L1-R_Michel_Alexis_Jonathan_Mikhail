@@ -27,9 +27,11 @@ background_x_change = 0
 
 clock = pygame.time.Clock()
 
+bow_pos_calc = False
+drawline = False
+
 
 # Personnage
-
 class Joueur(pygame.sprite.Sprite):
 
     def __init__(self):
@@ -104,21 +106,6 @@ def find_angle(position):
     new_angle = abs(new_angle - 180)
     return new_angle
 
-drawline = False
-perso = Joueur()
-perso_x = 50
-perso_x_deplacement = 0
-perso_y = 840
-bow_x = perso_x + 40
-bow_y = perso_y + 50
-arrow = Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/arrow.png").convert_alpha())
-bow_image = pygame.image.load("Images/Arc/archer.png").convert_alpha()
-power = 0
-angle = 0
-rotation_angle = 0
-shoot = False
-
-
 def redraw():
     print(f"", movement)
     screen.blit(background_image, (background_x, 0))
@@ -149,14 +136,25 @@ def tour(x, y):
     screen.blit(tour_image, (x, y))
 
 
+perso = Joueur()
+perso_x = 50
+perso_x_deplacement = 0
+perso_y = 840
+bow_x = perso_x + 40
+bow_y = perso_y + 50
+arrow = Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/arrow.png").convert_alpha())
+bow_image = pygame.image.load("Images/Arc/archer.png").convert_alpha()
+power = 0
+angle = 0
+rotation_angle = 0
+shoot = False
+
 # Variable de conditionnement, pour arrêter le programme on passera cette variable à false
 running = True
 movement = False
 
 while running:
     pos = pygame.mouse.get_pos()
-    if bow_pos:
-        pass
     if drawline:
         line = [initial_pos, pos]
     redraw()
@@ -201,7 +199,7 @@ while running:
             if not shoot:
                 drawline = True
                 initial_pos = pygame.mouse.get_pos()
-                bow_pos = True
+                bow_pos_calc = True
 
 
         if event.type == pygame.MOUSEBUTTONUP:
