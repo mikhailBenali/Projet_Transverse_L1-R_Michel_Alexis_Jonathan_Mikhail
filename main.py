@@ -1,5 +1,5 @@
 import pygame
-import time
+import time as tm
 from glob import glob
 from math import *
 import random
@@ -15,12 +15,13 @@ screen = pygame.display.set_mode((1920, 1080))  # Attention à bien rentrer un t
 # Initialisaiton du titre
 pygame.display.set_caption("Pana pua")
 
-tour_image = pygame.image.load("Images/tour.png").convert_alpha()
+chateau_image = pygame.image.load("Images/Chateau.png").convert_alpha()
+chateau_image = pygame.transform.scale(chateau_image, (512, 600))
 tour_x = 50
 largeur_tour = 201
 
 taille_tour = 256
-tour_y = 700
+tour_y = 355
 
 background_image = pygame.image.load("Images/background.jpg").convert()
 background_x = 0
@@ -38,13 +39,14 @@ class Joueur(pygame.sprite.Sprite):
     def __init__(self):
         self.images_droite = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Persos/perso??.png")]
         self.images_gauche = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Persos/perso??_gauche.png")]
+        self.mouvement = False
         self.orientation = ""
         self.frame = 0
 
     def idle(self, x, y):
-        if self.orientation == "droite":
+        if self.orientation == "droite" and self.mouvement:
             screen.blit(self.images_droite[0], (x, y))
-        else:
+        elif self.orientation == "gauche" and self.mouvement:
             screen.blit(self.images_gauche[0], (x, y))
 
     def mvt_droite(self, x, y):
@@ -81,11 +83,11 @@ class Sprite:
         self.temps_derniere_frame = 0
 
     def afficher(self, x, y):
-        self.temps_derniere_frame = time.time()
-        screen.blit(self.images, x, y)
+        self.temps_derniere_frame = tm.time()
+        screen.blit(self.images[self.frame], (x, y))
 
     def changer_frame(self):
-        if time.time() > self.temps_derniere_frame + 500:
+        if tm.time() > self.temps_derniere_frame + 500:
             self.frame += 1
 
 
@@ -127,7 +129,6 @@ def rot_center(image, angle):
 
 
 def find_angle(initial_position, position):
-
     new_angle = atan2((initial_position[1] - position[1]), (initial_position[0] - position[0]))
     new_angle = degrees(new_angle)
     new_angle = abs(new_angle - 180)
@@ -140,7 +141,7 @@ def redraw():
         angle = find_angle(initial_pos, pos)
         pygame.draw.line(screen, (64, 64, 64), line[0], line[1])
     else:
-        angle = find_angle([bow_x,bow_y], pos)
+        angle = find_angle([bow_x, bow_y], pos)
     # Affichage de la tour
     tour(tour_x, tour_y)
 
@@ -152,16 +153,32 @@ def redraw():
     if perso_x_deplacement == 0:
         perso.idle(perso_x, perso_y)
 
+    if perso_x < 0:
+        perso.mouvement = False
+        perso_x = 0
+    if perso_x >= 1920 - 128:
+        perso.mouvement = False
+        perso_x = 1920 - 128
+
     # Affichage arc
     bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle - 45)
     screen.blit(bowImg, (bow_x, bow_y))
+
+    perso_x += perso_x_deplacement
+    bow_x = perso_x + 40
+    clock.tick(60)
+
+    """i = 0
+    for slime in slimes:
+        i += 1
+        slime.afficher(slimes_x_pos[i], slimes_y)"""
 
 
 font = pygame.font.Font("freesansbold.ttf", 32)
 
 
 def tour(x, y):
-    screen.blit(tour_image, (x, y))
+    screen.blit(chateau_image, (x, y))
 
 
 bow_x = perso_x + 40
@@ -207,9 +224,11 @@ while running:
             if event.key == pygame.K_ESCAPE:
                 running = False
             if event.key == pygame.K_d:
+                perso.mouvement = True
                 movement = "Droite"
                 perso_x_deplacement = 10
             if event.key == pygame.K_q:
+                perso.mouvement = True
                 movement = "Gauche"
                 perso_x_deplacement = -10
 
@@ -243,10 +262,4 @@ while running:
                 time = 0
                 power = -sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
 
-    perso_x += perso_x_deplacement
-    bow_x = perso_x + 40
-    clock.tick(60)
-
-    for slime in slimes:
-        slime.afficher(slimes_x_pos, slimes_y)
     pygame.display.update()
