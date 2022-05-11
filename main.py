@@ -74,7 +74,7 @@ perso_x_deplacement = 0
 perso_y = 840
 
 
-class Sprite:
+'''class Sprite:
     def __init__(self, dossier):
         self.images = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/{dossier}/*.png")]
         self.frame = 0
@@ -92,7 +92,7 @@ class Sprite:
 slimes = [Sprite("slime") for i in range(5)]
 slimes_x_pos = [random.randint(1920, 2600) for slime in slimes]
 slimes_y = 800
-slimes_x_deplacement = [random.randint(1, 8) for slime in slimes]
+slimes_x_deplacement = [random.randint(1, 8) for slime in slimes]'''
 
 
 class Arrow(object):
@@ -136,11 +136,13 @@ def find_angle(initial_position, position):
 
 def redraw():
     screen.blit(background_image, (background_x, 0))
-    if drawline:
+    if drawline and initial_pos[0] - pos[0] != 0:
         angle = find_angle(initial_pos, pos)
         pygame.draw.line(screen, (64, 64, 64), line[0], line[1])
+        bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle - 45)
     else:
-        angle = find_angle([bow_x,bow_y], pos)
+        angle = find_angle([bow_x, bow_y], pos)
+        bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle - 225)
     # Affichage de la tour
     tour(tour_x, tour_y)
 
@@ -153,7 +155,6 @@ def redraw():
         perso.idle(perso_x, perso_y)
 
     # Affichage arc
-    bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle - 45)
     screen.blit(bowImg, (bow_x, bow_y))
 
 
@@ -190,10 +191,8 @@ while running:
             position = arrow.arrow_path(initial_bow_x, initial_bow_y, power, angle, time)
             arrow.x = position[0]
             arrow.y = position[1]
-            if angle - 45 + 89 < abs(rotation_angle) < angle - 45 + 91:
-                rotation_value = 0
             rotation_angle -= rotation_value
-            screen.blit(pygame.transform.rotate(arrow.image, rotation_angle), (arrow.x, arrow.y))
+            screen.blit(rot_center(arrow.image, rotation_angle), (arrow.x, arrow.y))
         else:
             shoot = False
             arrow.x = bow_x
@@ -234,19 +233,22 @@ while running:
                 initial_bow_y = bow_y
                 angle = find_angle(initial_pos, pos)
                 arrow.image = rot_center(pygame.transform.rotate(pygame.image.load("Images/Arc/arrow.png").convert_alpha(), 180), angle - 45)
-                if pos[0] > initial_pos[0] + 32:
-                    rotation_value = -0.9
-                else:
-                    rotation_value = 0.9
                 rotation_angle = 0
                 shoot = True
                 time = 0
                 power = -sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
+                print(f"{power}")
+                rotation_value = 1
+                if power != 0:
+                    if pos[0] > initial_pos[0] + 32:
+                        rotation_value = 75/power
+                    else:
+                        rotation_value = -75/power
 
     perso_x += perso_x_deplacement
     bow_x = perso_x + 40
     clock.tick(60)
 
-    for slime in slimes:
-        slime.afficher(slimes_x_pos, slimes_y)
+    #for slime in slimes:
+    #    slime.afficher(slimes_x_pos, slimes_y)
     pygame.display.update()
