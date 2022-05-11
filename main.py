@@ -98,20 +98,20 @@ def rot_center(image, angle):
     return rot_image
 
 
-def find_angle(position):
-    pos_x = bow_x + 32
-    pos_y = bow_y + 32
-    new_angle = atan2((pos_y - position[1]), (pos_x - position[0]))
+def find_angle(initial_position, position):
+
+    new_angle = atan2((initial_position[1] - position[1]), (initial_position[0] - position[0]))
     new_angle = degrees(new_angle)
     new_angle = abs(new_angle - 180)
     return new_angle
 
 def redraw():
-    print(f"", movement)
     screen.blit(background_image, (background_x, 0))
     if drawline:
+        angle = find_angle(initial_pos, pos)
         pygame.draw.line(screen, (64, 64, 64), line[0], line[1])
-
+    else:
+        angle = find_angle([bow_x,bow_y], pos)
     # Affichage de la tour
     tour(tour_x, tour_y)
 
@@ -124,7 +124,6 @@ def redraw():
         perso.idle(perso_x, perso_y)
 
     # Affichage arc
-    angle = find_angle(pos)
     bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle - 45)
     screen.blit(bowImg, (bow_x, bow_y))
 
@@ -166,6 +165,8 @@ while running:
             position = arrow.arrow_path(initial_bow_x, initial_bow_y, power, angle, time)
             arrow.x = position[0]
             arrow.y = position[1]
+            if angle - 45 + 89 < abs(rotation_angle) < angle - 45 + 91:
+                rotation_value = 0
             rotation_angle -= rotation_value
             screen.blit(pygame.transform.rotate(arrow.image, rotation_angle), (arrow.x, arrow.y))
         else:
@@ -207,9 +208,9 @@ while running:
                 drawline = False
                 initial_bow_x = bow_x
                 initial_bow_y = bow_y
-                angle = find_angle(pos)
+                angle = find_angle(initial_pos, pos)
                 arrow.image = rot_center(pygame.transform.rotate(pygame.image.load("Images/Arc/arrow.png").convert_alpha(), 180), angle - 45)
-                if pos[0] > bow_x + 32:
+                if pos[0] > initial_pos[0] + 32:
                     rotation_value = -0.9
                 else:
                     rotation_value = 0.9
@@ -217,7 +218,6 @@ while running:
                 shoot = True
                 time = 0
                 power = -sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
-                angle = find_angle(pos)
 
     perso_x += perso_x_deplacement
     bow_x = perso_x + 40
