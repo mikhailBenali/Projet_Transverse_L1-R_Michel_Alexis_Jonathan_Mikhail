@@ -104,7 +104,7 @@ def find_angle(position):
     new_angle = abs(new_angle - 180)
     return new_angle
 
-
+drawline = False
 perso = Joueur()
 perso_x = 50
 perso_x_deplacement = 0
@@ -120,8 +120,10 @@ shoot = False
 
 
 def redraw():
+    print(f"", movement)
     screen.blit(background_image, (background_x, 0))
-    pygame.draw.line(screen, (64, 64, 64), line[0], line[1])
+    if drawline:
+        pygame.draw.line(screen, (64, 64, 64), line[0], line[1])
 
     # Affichage de la tour
     tour(tour_x, tour_y)
@@ -153,13 +155,16 @@ movement = False
 
 while running:
     pos = pygame.mouse.get_pos()
-    line = [(bow_x + 32, bow_y + 32), pos]
+    if bow_pos:
+        pass
+    if drawline:
+        line = [initial_pos, pos]
     redraw()
     # screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
 
     if shoot:
         if arrow.y < 1112 and -32 < arrow.x < 1952:
-            time += 0.03
+            time += 0.25
             position = arrow.arrow_path(initial_bow_x, initial_bow_y, power, angle, time)
             arrow.x = position[0]
             arrow.y = position[1]
@@ -186,32 +191,35 @@ while running:
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_d and movement == "Droite":
-                movement = False
+                movement = ""
                 perso_x_deplacement = 0
             if event.key == pygame.K_q and movement == "Gauche":
-                movement = False
+                movement = ""
                 perso_x_deplacement = 0
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if not shoot:
+                drawline = True
+                initial_pos = pygame.mouse.get_pos()
+                bow_pos = True
+
+
+        if event.type == pygame.MOUSEBUTTONUP:
+            if not shoot and drawline:
+                drawline = False
                 initial_bow_x = bow_x
                 initial_bow_y = bow_y
                 angle = find_angle(pos)
-                print(f"angle fleche = {angle}")
                 arrow.image = rot_center(pygame.transform.rotate(pygame.image.load("Images/Arc/arrow.png").convert_alpha(), 180), angle - 45)
                 if pos[0] > bow_x + 32:
-                    rotation_value = -0.10
+                    rotation_value = -0.9
                 else:
-                    rotation_value = 0.10
+                    rotation_value = 0.9
                 rotation_angle = 0
                 shoot = True
                 time = 0
                 power = -sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
                 angle = find_angle(pos)
-
-        elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_q or event.key == pygame.K_d:
-                perso_x_deplacement = 0
 
     perso_x += perso_x_deplacement
     bow_x = perso_x + 40
