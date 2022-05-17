@@ -196,7 +196,7 @@ power = 0
 angle = 0
 rotation_angle = 0
 shoot = False
-grounded_arrows = 0
+grounded_arrows = 1
 grounded_arrows_img = []
 
 # Variable de conditionnement, pour arrêter le programme on passera cette variable à false
@@ -232,8 +232,9 @@ while running:
             screen.blit(rotated_arrow, (arrow.x, arrow.y))
         else:
             grounded_arrows_img.append([rotated_arrow, arrow.x, arrow.y])
-            grounded_arrows %= 6
             grounded_arrows += 1
+            if grounded_arrows > 20:
+                grounded_arrows_img.pop(0)
             shoot = False
             arrow.x = bow_x
             arrow.y = bow_y
