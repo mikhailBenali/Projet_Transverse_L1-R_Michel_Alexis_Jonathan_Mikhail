@@ -105,6 +105,7 @@ class Arrow(object):
         self.image = image
         self.rect = image.get_rect()
         self.bow_image = bow_image
+        self.trainee = []
 
     @staticmethod
     def arrow_path(startx, starty, arrow_power, angle, arrow_time):
@@ -143,8 +144,15 @@ def redraw():
     screen.blit(background_image, (background_x, 0))
     # Affichage de la tour
     tour(tour_x, tour_y)
-    if grounded_arrows_img:
-        for img in grounded_arrows_img: screen.blit(img[0], (img[1], img[2]))
+    if grounded_arrows:
+        for img in grounded_arrows:
+            screen.blit(img[0], (img[1], img[2]))
+    if arrow.trainee:
+        size = 1
+        for trainee in arrow.trainee:
+            screen.fill(trainee[0], (trainee[1], (size, size)))
+            size += 0.5
+
     if drawline and initial_pos[0] - pos[0] != 0:
         angle = find_angle(initial_pos, pos)
         pygame.draw.line(screen, (64, 64, 64), line[0], line[1])
@@ -167,6 +175,7 @@ def redraw():
     if perso_x >= 1920 - 128:
         perso.mouvement = False
         perso_x = 1920 - 128
+
 
     # Affichage arc
     screen.blit(bowImg, (bow_x, bow_y))
@@ -196,8 +205,7 @@ power = 0
 angle = 0
 rotation_angle = 0
 shoot = False
-grounded_arrows = 1
-grounded_arrows_img = []
+grounded_arrows = []
 
 # Variable de conditionnement, pour arrêter le programme on passera cette variable à false
 running = True
@@ -224,20 +232,23 @@ while running:
         if arrow.y < 925 and -32 < arrow.x < 1952:
             time += 0.25
             position = arrow.arrow_path(initial_bow_x, initial_bow_y, power, angle, time)
-            screen.set_at((position[0], position[1]), (235, 140, 130))
+            screen.set_at((position[0], position[1]), (100, 100, 100))
             arrow.x = position[0]
             arrow.y = position[1]
             rotation_angle -= rotation_value
             rotated_arrow = rot_center(arrow.image, rotation_angle).convert_alpha()
+            arrow.trainee.append([(235, 138, 126), (arrow.x+32, arrow.y+32)])
+            if len(arrow.trainee) > 15:
+                arrow.trainee.pop(0)
             screen.blit(rotated_arrow, (arrow.x, arrow.y))
         else:
-            grounded_arrows_img.append([rotated_arrow, arrow.x, arrow.y])
-            grounded_arrows += 1
-            if grounded_arrows > 20:
-                grounded_arrows_img.pop(0)
+            grounded_arrows.append([rotated_arrow, arrow.x, arrow.y])
+            if len(grounded_arrows) > 20:
+                grounded_arrows.pop(0)
             shoot = False
             arrow.x = bow_x
             arrow.y = bow_y
+            arrow.trainee = []
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
