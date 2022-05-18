@@ -203,7 +203,7 @@ bow_images = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Arc/ar
 arrow = Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), bow_images[0])
 power = 0
 angle = 0
-rotation_angle = 0
+old_angle = False
 shoot = False
 grounded_arrows = []
 
@@ -232,11 +232,18 @@ while running:
         if arrow.y < 925 and -32 < arrow.x < 1952:
             time += 0.25
             position = arrow.arrow_path(initial_bow_x, initial_bow_y, power, angle, time)
-            screen.set_at((position[0], position[1]), (100, 100, 100))
+            arrow_angle = find_angle((arrow.x, arrow.y), (position[0], position[1]))
             arrow.x = position[0]
             arrow.y = position[1]
-            rotation_angle -= rotation_value
-            rotated_arrow = rot_center(arrow.image, rotation_angle).convert_alpha()
+
+            if -5 > old_angle > 5 and initial_bow_x < arrow.x:
+                if old_angle < arrow_angle and old_angle != 0:
+                    arrow_angle = old_angle
+            elif initial_bow_x > arrow.x:
+                if old_angle > arrow_angle and old_angle != 0:
+                    arrow_angle = old_angle
+            rotated_arrow = rot_center(arrow.image, arrow_angle-45).convert_alpha()
+            old_angle = arrow_angle
             arrow.trainee.append([(235, 138, 126), (arrow.x+32, arrow.y+32)])
             if len(arrow.trainee) > 15:
                 arrow.trainee.pop(0)
@@ -279,6 +286,7 @@ while running:
                 drawline = True
                 initial_pos = pygame.mouse.get_pos()
                 bow_pos_calc = True
+                old_angle = False
 
         if event.type == pygame.MOUSEBUTTONUP:
             if not shoot and drawline:
@@ -287,16 +295,8 @@ while running:
                 initial_bow_x = bow_x
                 initial_bow_y = bow_y
                 angle = find_angle(initial_pos, pos)
-                arrow.image = rot_center(pygame.transform.rotate(pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 180), angle - 45)
-                rotation_angle = 0
                 shoot = True
                 time = 0
                 power = sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
-                rotation_value = 1
-                if power > 25:
-                    if pos[0] > initial_pos[0] + 32:
-                        rotation_value = -85/power
-                    else:
-                        rotation_value = 85/power
 
     pygame.display.update()
