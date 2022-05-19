@@ -43,7 +43,6 @@ class Joueur(pygame.sprite.Sprite):
         self.orientation = "droite"
         self.frame = 0
 
-
     def idle(self, x, y):
         if self.orientation == "droite" and self.mouvement:
             screen.blit(self.images_droite[0], (x, y))
@@ -99,13 +98,13 @@ slimes_x_deplacement = [random.randint(1, 8) for slime in slimes]
 
 
 class Arrow(object):
-    def __init__(self, arrow_x, arrow_y, image, bow_image):
+    def __init__(self, arrow_x, arrow_y, image, angle):
         self.x = arrow_x
         self.y = arrow_y
         self.image = image
         self.rect = image.get_rect()
-        self.bow_image = bow_image
         self.trainee = []
+        self.angle = angle
 
     @staticmethod
     def arrow_path(startx, starty, arrow_power, angle, arrow_time):
@@ -144,22 +143,23 @@ def redraw():
     screen.blit(background_image, (background_x, 0))
     # Affichage de la tour
     tour(tour_x, tour_y)
-    if grounded_arrows:
-        for img in grounded_arrows:
-            screen.blit(img[0], (img[1], img[2]))
-    if arrow.trainee:
-        size = 1
-        for trainee in arrow.trainee:
-            screen.fill(trainee[0], (trainee[1], (size, size)))
-            size += 0.5
+    for arrow in arrows_list:
+        if grounded_arrows:
+            for img in grounded_arrows:
+                screen.blit(img[0], (img[1], img[2]))
+        if arrow.trainee:
+            size = 1
+            for trainee in arrow.trainee:
+                screen.fill(trainee[0], (trainee[1], (size, size)))
+                size += 0.5
 
-    if drawline and initial_pos[0] - pos[0] != 0:
+    if drawline:
         angle = find_angle(initial_pos, pos)
         pygame.draw.line(screen, (64, 64, 64), line[0], line[1])
-        bowImg = rot_center(pygame.transform.rotate(arrow.bow_image, 180), angle - 45)
+        bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle - 45)
     else:
         angle = find_angle([bow_x, bow_y], pos)
-        bowImg = rot_center(pygame.transform.rotate(arrow.bow_image, 180), angle - 225)
+        bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle - 225)
 
     # Affichage personnage
     if movement == "Droite":
@@ -175,7 +175,6 @@ def redraw():
     if perso_x >= 1920 - 128:
         perso.mouvement = False
         perso_x = 1920 - 128
-
 
     # Affichage arc
     screen.blit(bowImg, (bow_x, bow_y))
@@ -200,12 +199,16 @@ def tour(x, y):
 bow_x = perso_x + 40
 bow_y = perso_y + 50
 bow_images = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Arc/arc-?.png")]
-arrow = Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), bow_images[0])
+bow_image = bow_images[0]
+arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0)]
 power = 0
-angle = 0
-old_angle = False
+old_angle = 0
+arrow_angle = {}
+new_arrow_angle = 0
+fallen_arrow = 0
 shoot = False
 grounded_arrows = []
+arrow_split_ability = 1
 
 # Variable de conditionnement, pour arrêter le programme on passera cette variable à false
 running = True
@@ -215,47 +218,67 @@ while running:
     pos = pygame.mouse.get_pos()
     if drawline:
         line = [initial_pos, pos]
-        arrow.bow_image = bow_images[0]
-        distance = sqrt((initial_pos[0] - pos[0])**2 + (initial_pos[1] - pos[1])**2)
+        distance = sqrt((initial_pos[0] - pos[0]) ** 2 + (initial_pos[1] - pos[1]) ** 2)
+
+        # Gère le bandage de l'arc
         if 0 <= distance < 250:
-            arrow.bow_image = bow_images[0]
+            bow_image = bow_images[0]
         if 250 <= distance < 500:
-            arrow.bow_image = bow_images[1]
+            bow_image = bow_images[1]
         if 500 <= distance < 750:
-            arrow.bow_image = bow_images[2]
+            bow_image = bow_images[2]
         if 750 <= distance:
-            arrow.bow_image = bow_images[3]
+            bow_image = bow_images[3]
     redraw()
     # screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
 
     if shoot:
-        if arrow.y < 925 and -32 < arrow.x < 1952:
-            time += 0.25
-            position = arrow.arrow_path(initial_bow_x, initial_bow_y, power, angle, time)
-            arrow_angle = find_angle((arrow.x, arrow.y), (position[0], position[1]))
-            arrow.x = position[0]
-            arrow.y = position[1]
+        time += 0.25
+        for arrow in arrows_list:
+            arrow_number = arrows_list.index(arrow)
+            if arrow.y < 925 and -32 < arrow.x < 1952:
+                position = arrow.arrow_path(initial_bow_x, initial_bow_y, power, arrow.angle, time)
+                arrow_angle[f"arrow_angle_{arrow_number}"] = find_angle((arrow.x, arrow.y), (position[0], position[1]))
+                if f"old_angle_{arrow_number}" in arrow_angle:
+                    new_arrow_angle = (arrow_angle[f"arrow_angle_{arrow_number}"] + arrow_angle[f"old_angle_{arrow_number}"]) / 2
+                arrow.x = position[0]
+                arrow.y = position[1]
+                arrow_angle[f"old_angle_{arrow_number}"] = arrow_angle[f"arrow_angle_{arrow_number}"]
+                print(new_arrow_angle)
+                # Gère la rotation de la flèche
+                arrow_angle[f"rotated_arrow_{arrow_number}"] = rot_center(arrow.image, new_arrow_angle - 45).convert_alpha()
+                screen.blit(arrow_angle[f"rotated_arrow_{arrow_number}"], (arrow.x, arrow.y))
 
-            if -5 > old_angle > 5 and initial_bow_x < arrow.x:
-                if old_angle < arrow_angle and old_angle != 0:
-                    arrow_angle = old_angle
-            elif initial_bow_x > arrow.x:
-                if old_angle > arrow_angle and old_angle != 0:
-                    arrow_angle = old_angle
-            rotated_arrow = rot_center(arrow.image, arrow_angle-45).convert_alpha()
-            old_angle = arrow_angle
-            arrow.trainee.append([(235, 138, 126), (arrow.x+32, arrow.y+32)])
-            if len(arrow.trainee) > 15:
-                arrow.trainee.pop(0)
-            screen.blit(rotated_arrow, (arrow.x, arrow.y))
-        else:
-            grounded_arrows.append([rotated_arrow, arrow.x, arrow.y])
-            if len(grounded_arrows) > 20:
-                grounded_arrows.pop(0)
-            shoot = False
-            arrow.x = bow_x
-            arrow.y = bow_y
-            arrow.trainee = []
+                # Gère la trainée de la flèche
+                arrow.trainee.append([(235, 138, 126), (arrow.x + 32, arrow.y + 32)])
+                if len(arrow.trainee) > 15:
+                    arrow.trainee.pop(0)
+            else:
+
+                # SI la compétence "splitting arrows" est active, séparer les flèches en deux à l'impact
+                if arrow_split_ability:
+                    arrows_list.append(Arrow(arrow.x, 925 - 10, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), new_arrow_angle))
+                    arrow.y = 925 - 10
+                    power /= 1.5
+                    time = 0
+                    initial_bow_x = arrow.x
+                    initial_bow_y = arrow.y
+                    angle = 360 - new_arrow_angle
+                    arrow_split_ability = 0
+                else:
+                    fallen_arrow += 1
+                    grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
+                    if len(grounded_arrows) > 20:
+                        grounded_arrows.pop(0)
+
+                    if len(arrows_list) == fallen_arrow:
+                        if fallen_arrow > 1:
+                            arrows_list.remove(arrow)
+                        fallen_arrow = 0
+                        shoot = False
+                    arrow.x = bow_x
+                    arrow.y = bow_y
+                    arrow.trainee = []
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -286,15 +309,15 @@ while running:
                 drawline = True
                 initial_pos = pygame.mouse.get_pos()
                 bow_pos_calc = True
-                old_angle = False
+                old_angle = 0
 
         if event.type == pygame.MOUSEBUTTONUP:
             if not shoot and drawline:
                 drawline = False
-                arrow.bow_image = bow_images[0]
+                bow_image = bow_images[0]
                 initial_bow_x = bow_x
                 initial_bow_y = bow_y
-                angle = find_angle(initial_pos, pos)
+                arrows_list[0].angle = find_angle(initial_pos, pos)
                 shoot = True
                 time = 0
                 power = sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
