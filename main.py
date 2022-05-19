@@ -184,7 +184,7 @@ def redraw():
 
     # Affichage arc
     screen.blit(bowImg, (bow_x, bow_y))
-
+    screen.blit(aptitude_bar_images, (5, 5))
     perso_x += perso_x_deplacement
     bow_x = perso_x + 40
     clock.tick(60)
@@ -204,8 +204,10 @@ def tour(x, y):
 
 bow_x = perso_x + 40
 bow_y = perso_y + 50
-bow_images = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Arc/arc-?.png")]
+bow_images = [pygame.image.load(f).convert_alpha() for f in glob("Images/Arc/arc-?.png")]
 bow_image = bow_images[0]
+aptitude_bar_images = pygame.image.load("Images/aptitude_bar/parchemin_9.png")
+    # [pygame.image.load(f).convert_alpha() for f in glob("Images/aptitude_bar/parchemin_?.png")]
 arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]
 power = 0
 old_angle = 0
@@ -273,7 +275,7 @@ while running:
         time += 0.25
         for arrow in arrows_list:
             arrow_number = arrows_list.index(arrow)
-            if arrow.y < 925 and -32 < arrow.x < 1952:
+            if arrow.y < 925 and -64 < arrow.x < 1952:
                 position = arrow.arrow_path(initial_bow_x, initial_bow_y, arrow.power, arrow.angle, time)
                 arrow_angle[f"arrow_angle_{arrow_number}"] = find_angle((arrow.x, arrow.y), (position[0], position[1]))
                 if f"old_angle_{arrow_number}" in arrow_angle:
@@ -289,14 +291,19 @@ while running:
                 arrow.trainee.append([(235, 138, 126), (arrow.x + 32, arrow.y + 32)])
                 if len(arrow.trainee) > 15:
                     arrow.trainee.pop(0)
+            elif arrow.x >= 1952 or arrow.x <= -64:
+                arrow.x = bow_x
+                arrow.y = bow_y
+                arrow.trainee = []
+                shoot = False
             else:
-                if arrow_split_ability != 1:
+                if not arrow_split_ability:
                     grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
                     shoot = False
 
                 # SI la compétence "splitting arrows" est active, séparer les flèches en deux à l'impact
                 if arrow_split_ability == 1:
-                    arrows_list.append(Arrow(arrow.x, 925 - 10, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), new_arrow_angle, arrow.power / 1.5))
+                    arrows_list.append(Arrow(arrow.x, 925 - 10, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), new_arrow_angle, arrow.power / 1.6))
                     arrow.y = 925 - 10
                     arrow.power /= 1.5
                     time = 0
@@ -306,11 +313,9 @@ while running:
                     arrow_split_ability += 1
                 elif arrow_split_ability == 2:  # Une fois qu'une des flèches split touche le sol
                     fallen_arrow += 1
-
-                    if len(arrows_list) == fallen_arrow:
-                        if fallen_arrow > 1:
-                            arrows_list.remove(arrow)
-                        fallen_arrow = 0
+                    grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
+                    arrows_list.remove(arrow)
+                    arrow_split_ability = 0
 
                 # Si la compétence "Arrow_rain" est active, dessiner une cible au sol et faire pleuvoir des flèches depuis le haut de l'écran
                 if arrow_rain:
