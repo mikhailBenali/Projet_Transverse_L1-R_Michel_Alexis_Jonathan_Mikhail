@@ -5,8 +5,6 @@ from math import *
 import random
 
 # Initialisation
-
-
 pygame.init()
 
 # Initialisation de la fenêtre
@@ -39,35 +37,44 @@ class Joueur(pygame.sprite.Sprite):
     def __init__(self):
         self.images_droite = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Persos/perso??.png")]
         self.images_gauche = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Persos/perso??_gauche.png")]
-        self.mouvement = True
-        self.orientation = "droite"
+        self.orientation = "droite"  # Sert pour la direction de l'idle
         self.frame = 0
+        self.tmps_derniere_frame = 0
 
     def idle(self, x, y):
-        if self.orientation == "droite" and self.mouvement:
+        if self.orientation == "droite":
             screen.blit(self.images_droite[0], (x, y))
-        elif self.orientation == "gauche" and self.mouvement:
+        elif self.orientation == "gauche":
             screen.blit(self.images_gauche[0], (x, y))
 
     def mvt_droite(self, x, y):
         self.orientation = "droite"
-        if self.frame < len(self.images_droite):
+        if tm.time() - self.tmps_derniere_frame > 0.2:
+            if self.frame + 1 >= len(self.images_droite):
+                self.frame = 0
+            else:
+                self.frame += 1
             screen.blit(self.images_droite[self.frame], (x, y))
-            self.frame += 1
+            self.nouvelle_frame()
 
         else:
-            self.frame = 0
-            self.mvt_droite(x, y)
+            screen.blit(self.images_droite[self.frame], (x, y))
 
     def mvt_gauche(self, x, y):
         self.orientation = "gauche"
-        if self.frame < len(self.images_gauche):
+        if tm.time() - self.tmps_derniere_frame > 0.2:
+            if self.frame + 1 >= len(self.images_gauche):
+                self.frame = 0
+            else:
+                self.frame += 1
             screen.blit(self.images_gauche[self.frame], (x, y))
-            self.frame += 1
+            self.nouvelle_frame()
 
         else:
-            self.frame = 0
-            self.mvt_gauche(x, y)
+            screen.blit(self.images_gauche[self.frame], (x, y))
+
+    def nouvelle_frame(self):
+        self.tmps_derniere_frame = tm.time()
 
 
 perso = Joueur()
@@ -154,10 +161,7 @@ def redraw():
                 screen.fill(trainee[0], (trainee[1], (size, size)))
                 size += 0.5
 
-
-
     # Creation de la cible pour la compétence "Arrow rain"
-
 
     if drawline:
         angle = find_angle(initial_pos, pos)
@@ -168,19 +172,12 @@ def redraw():
         bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle - 225)
 
     # Affichage personnage
-    if movement == "Droite":
+    if movement == "Droite" and perso_x_deplacement != 0:
         perso.mvt_droite(perso_x, perso_y)
-    elif movement == "Gauche":
+    elif movement == "Gauche" and perso_x_deplacement != 0:
         perso.mvt_gauche(perso_x, perso_y)
     if perso_x_deplacement == 0:
         perso.idle(perso_x, perso_y)
-
-    if perso_x < 0:
-        perso.mouvement = False
-        perso_x = 0
-    if perso_x >= 1920 - 128:
-        perso.mouvement = False
-        perso_x = 1920 - 128
 
     # Affichage arc
     screen.blit(bowImg, (bow_x, bow_y))
@@ -207,7 +204,7 @@ bow_y = perso_y + 50
 bow_images = [pygame.image.load(f).convert_alpha() for f in glob("Images/Arc/arc-?.png")]
 bow_image = bow_images[0]
 aptitude_bar_images = pygame.image.load("Images/aptitude_bar/parchemin_9.png")
-    # [pygame.image.load(f).convert_alpha() for f in glob("Images/aptitude_bar/parchemin_?.png")]
+# [pygame.image.load(f).convert_alpha() for f in glob("Images/aptitude_bar/parchemin_?.png")]
 arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]
 power = 0
 old_angle = 0
@@ -245,14 +242,12 @@ while running:
             bow_image = bow_images[3]
     redraw()
 
-
-
     if arrow_rain_init:
         competence = 1
         arrow_rain_number = random.randint(40, 50)
         falling_arrows = []
         for i in range(arrow_rain_number):
-            falling_arrows.append(Arrow(ground_x - 2*random.randint(50, 400), -random.randint(80, 1000), rot_center(pygame.image.load("Images/Arc/phlaitche-1.png"), 250).convert_alpha(), 0, 100))
+            falling_arrows.append(Arrow(ground_x - 2 * random.randint(50, 400), -random.randint(80, 1000), rot_center(pygame.image.load("Images/Arc/phlaitche-1.png"), 250).convert_alpha(), 0, 100))
         arrow_rain_active = True
         arrow_rain_init = 0
         arrow_speed = []
@@ -337,12 +332,10 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
-            if event.key == pygame.K_d:
-                perso.mouvement = True
+            if event.key == pygame.K_d and perso_x < 1920 - 128:
                 movement = "Droite"
                 perso_x_deplacement = 10
-            if event.key == pygame.K_q:
-                perso.mouvement = True
+            if event.key == pygame.K_q and perso_x > 0:
                 movement = "Gauche"
                 perso_x_deplacement = -10
 
@@ -371,5 +364,12 @@ while running:
                 shoot = True
                 time = 0
                 arrows_list[0].power = sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
+
+    if perso_x > 1920 - 128:
+        perso_x_deplacement = 0
+        perso_x = 1920 - 128
+    if perso_x < 0:
+        perso_x_deplacement = 0
+        perso_x = 0
 
     pygame.display.update()
