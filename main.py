@@ -98,13 +98,14 @@ slimes_x_deplacement = [random.randint(1, 8) for slime in slimes]
 
 
 class Arrow(object):
-    def __init__(self, arrow_x, arrow_y, image, angle):
+    def __init__(self, arrow_x, arrow_y, image, angle, power):
         self.x = arrow_x
         self.y = arrow_y
         self.image = image
         self.rect = image.get_rect()
         self.trainee = []
         self.angle = angle
+        self.power = power
 
     @staticmethod
     def arrow_path(startx, starty, arrow_power, angle, arrow_time):
@@ -153,6 +154,11 @@ def redraw():
                 screen.fill(trainee[0], (trainee[1], (size, size)))
                 size += 0.5
 
+
+
+    # Creation de la cible pour la compétence "Arrow rain"
+
+
     if drawline:
         angle = find_angle(initial_pos, pos)
         pygame.draw.line(screen, (64, 64, 64), line[0], line[1])
@@ -200,15 +206,21 @@ bow_x = perso_x + 40
 bow_y = perso_y + 50
 bow_images = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Arc/arc-?.png")]
 bow_image = bow_images[0]
-arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0)]
+arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]
 power = 0
 old_angle = 0
 arrow_angle = {}
 new_arrow_angle = 0
 fallen_arrow = 0
 shoot = False
+outline_size = 10
 grounded_arrows = []
+competence = 0
 arrow_split_ability = 1
+arrow_rain = 0
+arrow_rain_active = 0
+arrow_rain_init = 0
+ground_target = False
 
 # Variable de conditionnement, pour arrêter le programme on passera cette variable à false
 running = True
@@ -230,6 +242,31 @@ while running:
         if 750 <= distance:
             bow_image = bow_images[3]
     redraw()
+
+
+
+    if arrow_rain_init:
+        competence = 1
+        arrow_rain_number = random.randint(40, 50)
+        falling_arrows = []
+        for i in range(arrow_rain_number):
+            falling_arrows.append(Arrow(ground_x - 2*random.randint(50, 400), -random.randint(80, 1000), rot_center(pygame.image.load("Images/Arc/phlaitche-1.png"), 250).convert_alpha(), 0, 100))
+        arrow_rain_active = True
+        arrow_rain_init = 0
+        arrow_speed = []
+    if arrow_rain_active:
+        for arrow in falling_arrows:
+            screen.blit(arrow.image, (arrow.x, arrow.y))
+            arrow.x += 10
+            arrow.y += 30
+            if arrow.y > 925:
+                grounded_arrows.append([arrow.image, arrow.x, arrow.y])
+                falling_arrows.remove(arrow)
+        if not falling_arrows:
+            arrow_rain_active = False
+            competence = 0
+    if len(grounded_arrows) > 50:
+        grounded_arrows.pop(0)
     # screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
 
     if shoot:
@@ -237,14 +274,13 @@ while running:
         for arrow in arrows_list:
             arrow_number = arrows_list.index(arrow)
             if arrow.y < 925 and -32 < arrow.x < 1952:
-                position = arrow.arrow_path(initial_bow_x, initial_bow_y, power, arrow.angle, time)
+                position = arrow.arrow_path(initial_bow_x, initial_bow_y, arrow.power, arrow.angle, time)
                 arrow_angle[f"arrow_angle_{arrow_number}"] = find_angle((arrow.x, arrow.y), (position[0], position[1]))
                 if f"old_angle_{arrow_number}" in arrow_angle:
                     new_arrow_angle = (arrow_angle[f"arrow_angle_{arrow_number}"] + arrow_angle[f"old_angle_{arrow_number}"]) / 2
                 arrow.x = position[0]
                 arrow.y = position[1]
                 arrow_angle[f"old_angle_{arrow_number}"] = arrow_angle[f"arrow_angle_{arrow_number}"]
-                print(new_arrow_angle)
                 # Gère la rotation de la flèche
                 arrow_angle[f"rotated_arrow_{arrow_number}"] = rot_center(arrow.image, new_arrow_angle - 45).convert_alpha()
                 screen.blit(arrow_angle[f"rotated_arrow_{arrow_number}"], (arrow.x, arrow.y))
@@ -254,31 +290,40 @@ while running:
                 if len(arrow.trainee) > 15:
                     arrow.trainee.pop(0)
             else:
+                if arrow_split_ability != 1:
+                    grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
+                    shoot = False
 
                 # SI la compétence "splitting arrows" est active, séparer les flèches en deux à l'impact
-                if arrow_split_ability:
-                    arrows_list.append(Arrow(arrow.x, 925 - 10, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), new_arrow_angle))
+                if arrow_split_ability == 1:
+                    arrows_list.append(Arrow(arrow.x, 925 - 10, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), new_arrow_angle, arrow.power / 1.5))
                     arrow.y = 925 - 10
-                    power /= 1.5
+                    arrow.power /= 1.5
                     time = 0
                     initial_bow_x = arrow.x
                     initial_bow_y = arrow.y
                     angle = 360 - new_arrow_angle
-                    arrow_split_ability = 0
-                else:
+                    arrow_split_ability += 1
+                elif arrow_split_ability == 2:  # Une fois qu'une des flèches split touche le sol
                     fallen_arrow += 1
-                    grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
-                    if len(grounded_arrows) > 20:
-                        grounded_arrows.pop(0)
 
                     if len(arrows_list) == fallen_arrow:
                         if fallen_arrow > 1:
                             arrows_list.remove(arrow)
                         fallen_arrow = 0
-                        shoot = False
-                    arrow.x = bow_x
-                    arrow.y = bow_y
-                    arrow.trainee = []
+
+                # Si la compétence "Arrow_rain" est active, dessiner une cible au sol et faire pleuvoir des flèches depuis le haut de l'écran
+                if arrow_rain:
+                    arrow_rain_init = True
+                    ground_target = True
+                    ground_x = arrow.x
+                    ground_y = arrow.y + 32
+                    width = 100
+                    height = 50
+
+                arrow.x = bow_x
+                arrow.y = bow_y
+                arrow.trainee = []
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -305,7 +350,7 @@ while running:
                 perso_x_deplacement = 0
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if not shoot:
+            if not shoot and not competence:
                 drawline = True
                 initial_pos = pygame.mouse.get_pos()
                 bow_pos_calc = True
@@ -320,6 +365,6 @@ while running:
                 arrows_list[0].angle = find_angle(initial_pos, pos)
                 shoot = True
                 time = 0
-                power = sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
+                arrows_list[0].power = sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
 
     pygame.display.update()
