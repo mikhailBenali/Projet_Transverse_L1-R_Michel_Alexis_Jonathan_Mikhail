@@ -39,7 +39,7 @@ class Joueur(pygame.sprite.Sprite):
         self.images_gauche = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Persos/perso??_gauche.png")]
         self.orientation = "droite"  # Sert pour la direction de l'idle
         self.frame = 0
-        self.tmps_derniere_frame = 0
+        self.temps_derniere_frame = 0
 
     def idle(self, x, y):
         if self.orientation == "droite":
@@ -49,9 +49,10 @@ class Joueur(pygame.sprite.Sprite):
 
     def mvt_droite(self, x, y):
         self.orientation = "droite"
-        if tm.time() - self.tmps_derniere_frame > 0.2:
+        if tm.time() > self.temps_derniere_frame + 0.2:
             if self.frame + 1 >= len(self.images_droite):
                 self.frame = 0
+                self.mvt_droite(x, y)
             else:
                 self.frame += 1
             screen.blit(self.images_droite[self.frame], (x, y))
@@ -62,9 +63,10 @@ class Joueur(pygame.sprite.Sprite):
 
     def mvt_gauche(self, x, y):
         self.orientation = "gauche"
-        if tm.time() - self.tmps_derniere_frame > 0.2:
+        if tm.time() > self.temps_derniere_frame + 0.2:
             if self.frame + 1 >= len(self.images_gauche):
                 self.frame = 0
+                self.mvt_gauche(x, y)
             else:
                 self.frame += 1
             screen.blit(self.images_gauche[self.frame], (x, y))
@@ -74,7 +76,7 @@ class Joueur(pygame.sprite.Sprite):
             screen.blit(self.images_gauche[self.frame], (x, y))
 
     def nouvelle_frame(self):
-        self.tmps_derniere_frame = tm.time()
+        self.temps_derniere_frame = tm.time()
 
 
 perso = Joueur()
@@ -90,18 +92,16 @@ class Sprite:
         self.temps_derniere_frame = 0
 
     def afficher(self, x, y):
-        self.temps_derniere_frame = tm.time()
-        screen.blit(self.images[self.frame], (x, y))
+        if self.frame + 1 < len(self.images):  # S'il est possible de passer à la frame suivante
+            screen.blit(self.images[self.frame], (x, y))
+            self.frame += 1
+            self.changer_frame()
+        else:
+            self.frame = 0
+            self.afficher(x, y)
 
     def changer_frame(self):
-        if tm.time() > self.temps_derniere_frame + 500:
-            self.frame += 1
-
-
-slimes = [Sprite("slime") for i in range(5)]
-slimes_x_pos = [random.randint(1920, 2600) for slime in slimes]
-slimes_y = 800
-slimes_x_deplacement = [random.randint(1, 8) for slime in slimes]
+        self.temps_derniere_frame = tm.time()
 
 
 class Arrow(object):
@@ -143,6 +143,14 @@ def find_angle(initial_position, position):
     new_angle = degrees(new_angle)
     new_angle = abs(new_angle - 180)
     return new_angle
+
+
+slimes = [Sprite("slime") for i in range(5)]
+slimes_x_pos = [random.randint(1920, 2600) for slime in slimes]
+slimes_y = 800
+slimes_x_deplacement = [random.randint(-8, -1) for slime in slimes]
+
+slimes[0].afficher(slimes_x_pos, slimes_y)
 
 
 def redraw():
@@ -187,12 +195,9 @@ def redraw():
     clock.tick(60)
 
     """i = 0
-    for slime in slimes:
+    while i < len(slimes):
         i += 1
-        slime.afficher(slimes_x_pos[i], slimes_y)"""
-
-
-font = pygame.font.Font("freesansbold.ttf", 32)
+        slimes[i].afficher(slimes_x_pos[i], slimes_y)"""
 
 
 def tour(x, y):
@@ -234,11 +239,11 @@ while running:
         # Gère le bandage de l'arc
         if 0 <= distance < 250:
             bow_image = bow_images[0]
-        if 250 <= distance < 500:
+        elif 250 <= distance < 500:
             bow_image = bow_images[1]
-        if 500 <= distance < 750:
+        elif 500 <= distance < 750:
             bow_image = bow_images[2]
-        if 750 <= distance:
+        elif 750 <= distance:
             bow_image = bow_images[3]
     redraw()
 
@@ -264,7 +269,6 @@ while running:
             competence = 0
     if len(grounded_arrows) > 50:
         grounded_arrows.pop(0)
-    # screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
 
     if shoot:
         time += 0.25
@@ -332,7 +336,7 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
-            if event.key == pygame.K_d and perso_x < 1920 - 128:
+            if event.key == pygame.K_d and perso_x < 1920 - 128:  # On ne peut pas démarrer un déplacement au bord de l'écran vers l'extérieur
                 movement = "Droite"
                 perso_x_deplacement = 10
             if event.key == pygame.K_q and perso_x > 0:
@@ -365,7 +369,7 @@ while running:
                 time = 0
                 arrows_list[0].power = sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
 
-    if perso_x > 1920 - 128:
+    if perso_x > 1920 - 128:  # Replacer le perso s'il sort
         perso_x_deplacement = 0
         perso_x = 1920 - 128
     if perso_x < 0:
