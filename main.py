@@ -15,11 +15,13 @@ pygame.display.set_caption("Pana pua")
 
 chateau_image = pygame.image.load("Images/Chateau.png").convert_alpha()
 chateau_image = pygame.transform.scale(chateau_image, (512, 600))
-tour_x = 50
-largeur_tour = 201
 
-taille_tour = 256
+chateau_x = 50
 tour_y = 355
+largeur_chateau = 512
+taille_chateau = 600
+
+chateau_rect = chateau_image.get_rect()
 
 background_image = pygame.image.load("Images/background.jpg").convert()
 background_x = 0
@@ -40,6 +42,7 @@ class Joueur(pygame.sprite.Sprite):
         self.orientation = "droite"  # Sert pour la direction de l'idle
         self.frame = 0
         self.temps_derniere_frame = 0
+        self.rect = [self.images_droite[i].get_rect() for i in range(len(self.images_droite))] + [self.images_gauche[i].get_rect() for i in range(len(self.images_gauche))]  # Chaque image a son rectangle de collision
 
     def idle(self, x, y):
         if self.orientation == "droite":
@@ -82,7 +85,7 @@ class Joueur(pygame.sprite.Sprite):
 perso = Joueur()
 perso_x = 50
 perso_x_deplacement = 0
-perso_y = 840
+perso_y = 825
 
 
 class Sprite:
@@ -90,18 +93,25 @@ class Sprite:
         self.images = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/{dossier}/*.png")]
         self.frame = 0
         self.temps_derniere_frame = 0
+        self.rect = [self.images[i].get_rect() for i in range(len(self.images))]  # Chaque image a son rectangle de collision
 
     def afficher(self, x, y):
-        if self.frame + 1 < len(self.images):  # S'il est possible de passer à la frame suivante
-            screen.blit(self.images[self.frame], (x, y))
-            self.frame += 1
-            self.changer_frame()
+        if tm.time() > self.temps_derniere_frame + 0.05:
+            if self.frame + 1 < len(self.images):  # S'il est possible de passer à la frame suivante
+                screen.blit(self.images[self.frame], (x, y))
+                self.frame += 1
+                self.changer_frame()
+            else:
+                self.frame = 0
+                self.afficher(x, y)
         else:
-            self.frame = 0
-            self.afficher(x, y)
+            screen.blit(self.images[self.frame], (x, y))
 
     def changer_frame(self):
         self.temps_derniere_frame = tm.time()
+
+    def maj_rect(self): # todo mettre à jour le rect
+        self.rect[self.frame] = self.images[self.frame].get_rect()
 
 
 class Arrow(object):
@@ -114,8 +124,7 @@ class Arrow(object):
         self.angle = angle
         self.power = power
 
-    @staticmethod
-    def arrow_path(startx, starty, arrow_power, angle, arrow_time):
+    def arrow_path(self, startx, starty, arrow_power, angle, arrow_time):
         velx = cos(radians(angle)) * -arrow_power  # velocity
         vely = sin(radians(angle)) * -arrow_power
 
@@ -146,11 +155,9 @@ def find_angle(initial_position, position):
 
 
 slimes = [Sprite("slime") for i in range(5)]
-slimes_x_pos = [random.randint(1920, 2600) for slime in slimes]
-slimes_y = 800
-slimes_x_deplacement = [random.randint(-8, -1) for slime in slimes]
-
-slimes[0].afficher(slimes_x_pos, slimes_y)
+slimes_x_pos = [random.randint(800, 1500) for slime in slimes]  # 1920, 2600
+slimes_y = 825
+slimes_x_deplacement = [random.randint(-3, -1) for slime in slimes]
 
 
 def redraw():
@@ -158,7 +165,7 @@ def redraw():
     global bow_x
     screen.blit(background_image, (background_x, 0))
     # Affichage de la tour
-    tour(tour_x, tour_y)
+    tour(chateau_x, tour_y)
     for arrow in arrows_list:
         if grounded_arrows:
             for img in grounded_arrows:
@@ -194,10 +201,8 @@ def redraw():
     bow_x = perso_x + 40
     clock.tick(60)
 
-    """i = 0
-    while i < len(slimes):
-        i += 1
-        slimes[i].afficher(slimes_x_pos[i], slimes_y)"""
+    for i in range(len(slimes)):
+        slimes[i].afficher(slimes_x_pos[i], slimes_y)
 
 
 def tour(x, y):
@@ -329,6 +334,10 @@ while running:
                 arrow.y = bow_y
                 arrow.trainee = []
 
+            """for i in range(len(slimes)):
+                if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]):
+                    del slimes[i]"""
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -375,5 +384,11 @@ while running:
     if perso_x < 0:
         perso_x_deplacement = 0
         perso_x = 0
+
+    for i in range(len(slimes)):
+        slimes[i].maj_rect()
+        slimes_x_pos[i] += slimes_x_deplacement[i]
+        if pygame.Rect.colliderect(chateau_rect, slimes[i].rect[slimes[i].frame]):
+            slimes_x_pos[i] += 50
 
     pygame.display.update()
