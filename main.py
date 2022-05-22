@@ -13,17 +13,6 @@ screen = pygame.display.set_mode((1920, 1080))  # Attention à bien rentrer un t
 # Initialisaiton du titre
 pygame.display.set_caption("Pana pua")
 
-chateau_image = pygame.image.load("Images/Chateau.png").convert_alpha()
-chateau_image = pygame.transform.scale(chateau_image, (512, 600))
-
-chateau_x = 50
-chateau_y = 355
-largeur_chateau = 512
-taille_chateau = 600
-vie_chateau = 1000
-
-chateau_rect = chateau_image.get_rect(topleft=(chateau_x - 30, chateau_y))  # - 30 car la box du slime est un peu plus large que lui-même
-
 background_image = pygame.image.load("Images/background.jpg").convert()
 background_x = 0
 background_x_change = 0
@@ -31,6 +20,86 @@ background_x_change = 0
 clock = pygame.time.Clock()
 
 drawline = False
+
+# Création du château
+
+chateau_x = 50
+chateau_y = 355
+largeur_chateau = 512
+taille_chateau = 600
+
+
+class Chateau:
+    def __init__(self):
+        self.vie_max = 1000
+        self.vie = 1000
+        self.images_full_hp = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Chateau/schato_drapeau*.png")]
+        for i in range(len(self.images_full_hp)):
+            self.images_full_hp[i] = pygame.transform.scale(self.images_full_hp[i], (512, 600))
+
+        self.images_75_hp = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Chateau/schato_destr_25*.png")]
+        for i in range(len(self.images_75_hp)):
+            self.images_75_hp[i] = pygame.transform.scale(self.images_75_hp[i], (512, 600))
+
+        self.images_50_hp = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Chateau/schato_destr_50*.png")]
+        for i in range(len(self.images_50_hp)):
+            self.images_50_hp[i] = pygame.transform.scale(self.images_50_hp[i], (512, 600))
+
+        self.images_25_hp = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Chateau/schato_destr_75*.png")]
+        for i in range(len(self.images_25_hp)):
+            self.images_25_hp[i] = pygame.transform.scale(self.images_25_hp[i], (512, 600))
+
+        self.frame = 0
+        self.rect = pygame.Rect(chateau_x, chateau_y, largeur_chateau, taille_chateau)
+        self.temps_derniere_frame = 0
+
+    def afficher(self):
+        if self.vie > 75 / 100 * self.vie_max:
+            if tm.time() > self.temps_derniere_frame + 0.2:
+                if self.frame + 1 < len(self.images_full_hp):
+                    screen.blit(self.images_full_hp[self.frame], (chateau_x, chateau_y))
+                    self.temps_derniere_frame = tm.time()
+                    self.frame += 1
+                else:
+                    self.frame = 0
+            else:
+                screen.blit(self.images_full_hp[self.frame], (chateau_x, chateau_y))
+        elif self.vie > 50 / 100 * self.vie_max:
+            if tm.time() > self.temps_derniere_frame + 0.2:
+                if self.frame + 1 < len(self.images_75_hp):
+                    screen.blit(self.images_75_hp[self.frame], (chateau_x, chateau_y))
+                    self.temps_derniere_frame = tm.time()
+                    self.frame += 1
+                else:
+                    self.frame = 0
+            else:
+                screen.blit(self.images_75_hp[self.frame], (chateau_x, chateau_y))
+        elif self.vie > 25 / 100 * self.vie_max:
+            if tm.time() > self.temps_derniere_frame + 0.2:
+                if self.frame + 1 < len(self.images_50_hp):
+                    screen.blit(self.images_50_hp[self.frame], (chateau_x, chateau_y))
+                    self.temps_derniere_frame = tm.time()
+                    self.frame += 1
+                else:
+                    self.frame = 0
+            else:
+                screen.blit(self.images_50_hp[self.frame], (chateau_x, chateau_y))
+        elif self.vie > 0:
+            if tm.time() > self.temps_derniere_frame + 0.2:
+                if self.frame + 1 < len(self.images_25_hp):
+                    screen.blit(self.images_25_hp[self.frame], (chateau_x, chateau_y))
+                    self.temps_derniere_frame = tm.time()
+                    self.frame += 1
+                else:
+                    self.frame = 0
+            else:
+                screen.blit(self.images_25_hp[self.frame], (chateau_x, chateau_y))
+
+        else:
+            pass  # todo Mettre la destruction du château
+
+
+chateau = Chateau()
 
 
 # Personnage
@@ -86,9 +155,9 @@ class Joueur:
 
 
 perso = Joueur()
-perso_x = 50
+perso_x = chateau_x + 50
 perso_x_deplacement = 0
-perso_y = 825
+perso_y = chateau_y + 225  # 825
 
 
 class Sprite:
@@ -114,7 +183,7 @@ class Sprite:
         self.temps_derniere_frame = tm.time()
 
     def maj_rect(self, x, y):
-        self.rect = [self.images[i].get_rect(topleft=(x, y)) for i in range(len(self.images))]
+        self.rect = [self.images[i].get_rect(topleft=(x + 50, y + 50), width=78, height=78) for i in range(len(self.images))]  # On réduit la taille du rect
 
 
 slimes = [Sprite("slime") for i in range(5)]
@@ -162,13 +231,12 @@ class Arrow(object):
 
 class Particle:
     def __init__(self, radius):
-        self.radius = random.randint(radius-10, radius)
+        self.radius = random.randint(radius - 10, radius)
         self.max_radius = radius
         self.angle = random.randint(0, 360)
         self.size = random.randint(10, 13)
         self.x = bow_x + 26 + radius * cos(self.angle)
         self.y = bow_y + 26 + radius * sin(self.angle)
-
 
     def generate_x_y(self, radius, angle):
         self.x = bow_x + 26 + radius * cos(angle)
@@ -196,8 +264,6 @@ def redraw():
     global perso_x
     global bow_x
     screen.blit(background_image, (background_x, 0))
-    # Affichage de la tour
-    screen.blit(chateau_image, (chateau_x, chateau_y))
     for arrow in arrows_list:
         if grounded_arrows:
             for img in grounded_arrows:
@@ -223,14 +289,18 @@ def redraw():
         bowImg = rot_center(pygame.transform.rotate(bow_image, 180), angle - 225)
 
     # Affichage personnage
-    if movement == "Droite" and perso_x_deplacement != 0:
+    """if movement == "Droite" and perso_x_deplacement != 0:
         perso.mvt_droite(perso_x, perso_y)
     elif movement == "Gauche" and perso_x_deplacement != 0:
         perso.mvt_gauche(perso_x, perso_y)
     if perso_x_deplacement == 0:
-        perso.idle(perso_x, perso_y)
+        perso.idle(perso_x, perso_y)"""
+    perso.idle(perso_x, perso_y)
 
-    pygame.draw.line(screen, (0, 255, 0), (chateau_x, 1000), (chateau_x + vie_chateau/2, 1000), 50)
+    # Affichage de la tour
+    chateau.afficher()
+
+    pygame.draw.line(screen, (0, 255, 0), (chateau_x, 1000), (chateau_x + chateau.vie / 2, 1000), 50)
 
     # Affichage arc
     screen.blit(bowImg, (bow_x, bow_y))
@@ -244,6 +314,7 @@ def redraw():
 
     for i in range(len(oiseaux)):
         oiseaux[i].afficher(oiseaux_x_pos[i], oiseaux_y)
+
 
 bow_x = perso_x + 40
 bow_y = perso_y + 50
@@ -388,7 +459,7 @@ while running:
                     for i in range(20):
                         pass
                     for j in range(-1, 2):
-                        arrow.trainee.append([(255, 0, 0), (x + 32 + j*2, y + 32 + j*2)]) #TODO finir le laser joli
+                        arrow.trainee.append([(255, 0, 0), (x + 32 + j * 2, y + 32 + j * 2)])  # TODO finir le laser joli
                     old_arrow = ()
                 else:
                     arrow.trainee.append([(235, 138, 126), (arrow.x + 32, arrow.y + 32)])
@@ -439,7 +510,6 @@ while running:
 
             arrow.maj_rect(arrow.x, arrow.y)
 
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -447,7 +517,7 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
-            if event.key == pygame.K_d and perso_x < 1920 - 128:  # On ne peut pas démarrer un déplacement au bord de l'écran vers l'extérieur
+            """if event.key == pygame.K_d and perso_x < 1920 - 128:  # On ne peut pas démarrer un déplacement au bord de l'écran vers l'extérieur
                 movement = "Droite"
                 perso_x_deplacement = 7.5
             if event.key == pygame.K_q and perso_x > 0:
@@ -470,7 +540,7 @@ while running:
                 perso_x_deplacement = 0
             if event.key == pygame.K_q and movement == "Gauche":
                 movement = ""
-                perso_x_deplacement = 0
+                perso_x_deplacement = 0"""
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if not shoot and not competence:
@@ -514,30 +584,28 @@ while running:
         movement = ""
         perso_x_deplacement = 0
 
-    if perso_x > 1920 - 128:  # Replacer le perso s'il sort
+    """if perso_x > 1920 - 128:  # Replacer le perso s'il sort
         perso_x_deplacement = 0
         perso_x = 1920 - 128
     if perso_x < 0:
         perso_x_deplacement = 0
-        perso_x = 0
+        perso_x = 0"""
 
     for i in range(len(slimes)):
         slimes_x_pos[i] += slimes_x_deplacement[i]
         slimes[i].maj_rect(slimes_x_pos[i], slimes_y)  # Mettre à jour les rect des slimes
-        if pygame.Rect.colliderect(chateau_rect, slimes[i].rect[slimes[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
-            slimes_x_pos[i] += 150
-            vie_chateau -= 10
-            print(vie_chateau)
+        if pygame.Rect.colliderect(chateau.rect, slimes[i].rect[slimes[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
+            slimes_x_pos[i] += 100
+            chateau.vie -= 10
 
     for i in range(len(oiseaux)):
         oiseaux_x_pos[i] += oiseaux_x_deplacement[i]
         oiseaux[i].maj_rect(oiseaux_x_pos[i], oiseaux_y)  # Mettre à jour les rect des slimes
-        if pygame.Rect.colliderect(chateau_rect, oiseaux[i].rect[oiseaux[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
-            oiseaux_x_pos[i] += 150
-            vie_chateau -= 10
-            print(vie_chateau)
+        if pygame.Rect.colliderect(chateau.rect, oiseaux[i].rect[oiseaux[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
+            oiseaux_x_pos[i] += 100
+            chateau.vie -= 10
 
-    if vie_chateau <= 0:
+    if chateau.vie <= 0:
         defaite = True
         slimes = []
         oiseaux = []
