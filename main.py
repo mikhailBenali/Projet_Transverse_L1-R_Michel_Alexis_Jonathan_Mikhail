@@ -156,6 +156,10 @@ class Arrow(object):
 
         return newx, newy
 
+    def maj_rect(self, x, y):
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+
 class Particle:
     def __init__(self, radius):
         self.radius = random.randint(radius-10, radius)
@@ -169,9 +173,6 @@ class Particle:
     def generate_x_y(self, radius, angle):
         self.x = bow_x + 26 + radius * cos(angle)
         self.y = bow_y + 26 + radius * sin(angle)
-
-def maj_rect(self, x, y):
-    self.rect = self.image.get_rect(topleft=(x, y))
 
 
 def rot_center(image, angle):
@@ -271,6 +272,7 @@ laser_arrow_init = 0
 ground_target = False
 charge_complete = False
 particle_disperion = 0
+hit = False
 
 # Variable de conditionnement, pour arrêter le programme on passera cette variable à false
 running = True
@@ -341,9 +343,38 @@ while running:
 
     if shoot:
         time += 0.25
+        hit = False
         for arrow in arrows_list:
             arrow_number = arrows_list.index(arrow)
-            if -200 < arrow.y < 925 and -64 < arrow.x < 1952:
+            # Collisions avec les slimes
+
+            slimes_a_supprimer = -1
+
+            for i in range(len(slimes)):
+                if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]):
+                    slimes_a_supprimer = i  # On garde l'indice du slime à supprimer
+
+            if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                hit = True  # On arrête les calculs de tir (trajectoires etc...)
+                arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), arrow.x, 925)]  # On remet la flèche au niveau de l'arc
+                del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
+                del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
+                slimes_a_supprimer = -1
+
+            oiseaux_a_supprimer = -1
+
+            for i in range(len(oiseaux)):
+                if pygame.Rect.colliderect(arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
+                    oiseaux_a_supprimer = i  # On garde l'indice du slime à supprimer
+
+            if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                hit = True  # On arrête les calculs de tir (trajectoires etc...)
+                arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), arrow.x, 925)]  # On remet la flèche au niveau de l'arc
+                del oiseaux[oiseaux_a_supprimer]  # On supprime le slime correspondant
+                del oiseaux_x_pos[oiseaux_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
+                oiseaux_a_supprimer = -1
+
+            if -200 < arrow.y < 925 and -64 < arrow.x < 1952 and not hit:
                 position = arrow.arrow_path(initial_bow_x, initial_bow_y, arrow.power, arrow.angle, time)
                 arrow_angle[f"arrow_angle_{arrow_number}"] = find_angle((arrow.x, arrow.y), (position[0], position[1]))
                 if f"old_angle_{arrow_number}" in arrow_angle:
@@ -373,7 +404,7 @@ while running:
                     arrow.trainee = []
                     shoot = False
             else:
-                if not arrow_split_ability:
+                if not arrow_split_ability and not hit:
                     grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
                     shoot = False
 
@@ -407,31 +438,6 @@ while running:
 
             arrow.maj_rect(arrow.x, arrow.y)
 
-            # Collisions avec les slimes
-
-            slimes_a_supprimer = -1
-
-            for i in range(len(slimes)):
-                if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]):
-                    slimes_a_supprimer = i  # On garde l'indice du slime à supprimer
-
-            if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
-                arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]  # On remet la flèche au niveau de l'arc
-                del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
-                del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
-                slimes_a_supprimer = -1
-
-            oiseaux_a_supprimer = -1
-
-            for i in range(len(oiseaux)):
-                if pygame.Rect.colliderect(arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
-                    oiseaux_a_supprimer = i  # On garde l'indice du slime à supprimer
-
-            if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
-                arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]  # On remet la flèche au niveau de l'arc
-                del oiseaux[oiseaux_a_supprimer]  # On supprime le slime correspondant
-                del oiseaux_x_pos[oiseaux_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
-                oiseaux_a_supprimer = -1
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
