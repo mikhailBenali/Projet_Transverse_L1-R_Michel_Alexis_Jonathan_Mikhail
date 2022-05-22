@@ -17,11 +17,11 @@ chateau_image = pygame.image.load("Images/Chateau.png").convert_alpha()
 chateau_image = pygame.transform.scale(chateau_image, (512, 600))
 
 chateau_x = 50
-tour_y = 355
+chateau_y = 355
 largeur_chateau = 512
 taille_chateau = 600
 
-chateau_rect = chateau_image.get_rect()
+chateau_rect = chateau_image.get_rect(topleft=(chateau_x - 30, chateau_y))  # - 30 car la box du slime est un peu plus large que lui-même
 
 background_image = pygame.image.load("Images/background.jpg").convert()
 background_x = 0
@@ -34,7 +34,7 @@ drawline = False
 
 
 # Personnage
-class Joueur(pygame.sprite.Sprite):
+class Joueur:
 
     def __init__(self):
         self.images_droite = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Persos/perso??.png")]
@@ -81,6 +81,9 @@ class Joueur(pygame.sprite.Sprite):
     def nouvelle_frame(self):
         self.temps_derniere_frame = tm.time()
 
+    def maj_rect(self, x, y):
+        self.rect = [self.images_droite[i].get_rect(topleft=(x, y)) for i in range(len(self.images_droite))] + [self.images_gauche[i].get_rect(topleft=(x, y)) for i in range(len(self.images_gauche))]
+
 
 perso = Joueur()
 perso_x = 50
@@ -110,8 +113,17 @@ class Sprite:
     def changer_frame(self):
         self.temps_derniere_frame = tm.time()
 
-    def maj_rect(self): # todo mettre à jour le rect
-        self.rect[self.frame] = self.images[self.frame].get_rect()
+    def maj_rect(self, x, y):
+        self.rect = [self.images[i].get_rect(topleft=(x, y)) for i in range(len(self.images))]
+
+
+slimes = [Sprite("slime") for i in range(5)]
+slimes_x_pos = [x for x in range(1280, 1920, 128)]  # [random.randint(1500, 1800) for slime in slimes]  # 1920, 2600
+slimes_y = 825
+for i in range(len(slimes)):  # Mettre à jour les rect des slimes une première fois
+    slimes[i].maj_rect(slimes_x_pos[i], slimes_y)
+random.seed(tm.time())
+slimes_x_deplacement = [-3, -3, -3, -3, -3]  # [random.randint(-3, -1) for slime in slimes]
 
 
 class Arrow(object):
@@ -123,6 +135,7 @@ class Arrow(object):
         self.trainee = []
         self.angle = angle
         self.power = power
+        self.rect = self.image.get_rect()
 
     def arrow_path(self, startx, starty, arrow_power, angle, arrow_time):
         velx = cos(radians(angle)) * -arrow_power  # velocity
@@ -135,6 +148,9 @@ class Arrow(object):
         newy = round(starty - disty)
 
         return newx, newy
+
+    def maj_rect(self, x, y):
+        self.rect = self.image.get_rect(topleft=(x, y))
 
 
 def rot_center(image, angle):
@@ -154,18 +170,12 @@ def find_angle(initial_position, position):
     return new_angle
 
 
-slimes = [Sprite("slime") for i in range(5)]
-slimes_x_pos = [random.randint(800, 1500) for slime in slimes]  # 1920, 2600
-slimes_y = 825
-slimes_x_deplacement = [random.randint(-3, -1) for slime in slimes]
-
-
 def redraw():
     global perso_x
     global bow_x
     screen.blit(background_image, (background_x, 0))
     # Affichage de la tour
-    tour(chateau_x, tour_y)
+    tour(chateau_x, chateau_y)
     for arrow in arrows_list:
         if grounded_arrows:
             for img in grounded_arrows:
@@ -199,7 +209,7 @@ def redraw():
     screen.blit(aptitude_bar_images, (5, 5))
     perso_x += perso_x_deplacement
     bow_x = perso_x + 40
-    clock.tick(60)
+    clock.tick(30)
 
     for i in range(len(slimes)):
         slimes[i].afficher(slimes_x_pos[i], slimes_y)
@@ -334,9 +344,21 @@ while running:
                 arrow.y = bow_y
                 arrow.trainee = []
 
-            """for i in range(len(slimes)):
+            arrow.maj_rect(arrow.x, arrow.y)
+
+            # Collisions avec les slimes
+
+            slimes_a_supprimer = -1
+
+            for i in range(len(slimes)):
                 if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]):
-                    del slimes[i]"""
+                    slimes_a_supprimer = i  # On garde l'indice du slime à supprimer
+
+            if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]  # On remet la flèche au niveau de l'arc
+                del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
+                del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
+                slimes_a_supprimer = -1
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -386,9 +408,9 @@ while running:
         perso_x = 0
 
     for i in range(len(slimes)):
-        slimes[i].maj_rect()
         slimes_x_pos[i] += slimes_x_deplacement[i]
-        if pygame.Rect.colliderect(chateau_rect, slimes[i].rect[slimes[i].frame]):
+        slimes[i].maj_rect(slimes_x_pos[i], slimes_y)  # Mettre à jour les rect des slimes
+        if pygame.Rect.colliderect(chateau_rect, slimes[i].rect[slimes[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
             slimes_x_pos[i] += 50
 
     pygame.display.update()
