@@ -55,42 +55,46 @@ class Chateau:
 
     def afficher(self):
         if self.vie > 75 / 100 * self.vie_max:
-            if tm.time() > self.temps_derniere_frame + 0.2:
+            if tm.time() > self.temps_derniere_frame + 1:
                 if self.frame + 1 < len(self.images_full_hp):
                     screen.blit(self.images_full_hp[self.frame], (chateau_x, chateau_y))
                     self.temps_derniere_frame = tm.time()
                     self.frame += 1
                 else:
+                    screen.blit(self.images_full_hp[self.frame], (chateau_x, chateau_y))
                     self.frame = 0
             else:
                 screen.blit(self.images_full_hp[self.frame], (chateau_x, chateau_y))
         elif self.vie > 50 / 100 * self.vie_max:
-            if tm.time() > self.temps_derniere_frame + 0.2:
+            if tm.time() > self.temps_derniere_frame + 1:
                 if self.frame + 1 < len(self.images_75_hp):
                     screen.blit(self.images_75_hp[self.frame], (chateau_x, chateau_y))
                     self.temps_derniere_frame = tm.time()
                     self.frame += 1
                 else:
+                    screen.blit(self.images_75_hp[self.frame], (chateau_x, chateau_y))
                     self.frame = 0
             else:
                 screen.blit(self.images_75_hp[self.frame], (chateau_x, chateau_y))
         elif self.vie > 25 / 100 * self.vie_max:
-            if tm.time() > self.temps_derniere_frame + 0.2:
+            if tm.time() > self.temps_derniere_frame + 1:
                 if self.frame + 1 < len(self.images_50_hp):
                     screen.blit(self.images_50_hp[self.frame], (chateau_x, chateau_y))
                     self.temps_derniere_frame = tm.time()
                     self.frame += 1
                 else:
+                    screen.blit(self.images_50_hp[self.frame], (chateau_x, chateau_y))
                     self.frame = 0
             else:
                 screen.blit(self.images_50_hp[self.frame], (chateau_x, chateau_y))
         elif self.vie > 0:
-            if tm.time() > self.temps_derniere_frame + 0.2:
+            if tm.time() > self.temps_derniere_frame + 1:
                 if self.frame + 1 < len(self.images_25_hp):
                     screen.blit(self.images_25_hp[self.frame], (chateau_x, chateau_y))
                     self.temps_derniere_frame = tm.time()
                     self.frame += 1
                 else:
+                    screen.blit(self.images_25_hp[self.frame], (chateau_x, chateau_y))
                     self.frame = 0
             else:
                 screen.blit(self.images_25_hp[self.frame], (chateau_x, chateau_y))
@@ -583,6 +587,11 @@ while running:
     if laser_arrow_init:
         movement = ""
         perso_x_deplacement = 0
+
+    if chateau.vie < 25 / 100 * chateau.vie_max:
+        perso_x = chateau_x + 20
+        perso_y = 825
+        bow_y = perso_y + 50
 
     """if perso_x > 1920 - 128:  # Replacer le perso s'il sort
         perso_x_deplacement = 0
