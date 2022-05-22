@@ -20,6 +20,7 @@ chateau_x = 50
 chateau_y = 355
 largeur_chateau = 512
 taille_chateau = 600
+vie_chateau = 1000
 
 chateau_rect = chateau_image.get_rect(topleft=(chateau_x - 30, chateau_y))  # - 30 car la box du slime est un peu plus large que lui-même
 
@@ -125,6 +126,13 @@ for i in range(len(slimes)):  # Mettre à jour les rect des slimes une première
     slimes[i].maj_rect(slimes_x_pos[i], slimes_y)
 slimes_x_deplacement = [random.choice([x / 10 for x in range(-40, -10)]) for slime in slimes]  # Pour avoir des vitesses entre -4.0 et -1.0
 
+oiseaux = [Sprite("bird") for i in range(5)]
+oiseaux_x_pos = [random.randint(1500, 1800) for oiseau in oiseaux]
+oiseaux_y = 600
+for i in range(len(slimes)):
+    oiseaux[i].maj_rect(oiseaux_x_pos[i], oiseaux_y)
+oiseaux_x_deplacement = [random.choice([x / 10 for x in range(-60, -30)]) for oiseau in oiseaux]
+
 
 class Arrow(object):
     def __init__(self, arrow_x, arrow_y, image, angle, power):
@@ -214,6 +222,9 @@ def redraw():
     for i in range(len(slimes)):
         slimes[i].afficher(slimes_x_pos[i], slimes_y)
 
+    for i in range(len(oiseaux)):
+        oiseaux[i].afficher(oiseaux_x_pos[i], oiseaux_y)
+
 
 def tour(x, y):
     screen.blit(chateau_image, (x, y))
@@ -244,6 +255,7 @@ ground_target = False
 # Variable de conditionnement, pour arrêter le programme on passera cette variable à false
 running = True
 movement = False
+defaite = False
 
 while running:
     pos = pygame.mouse.get_pos()
@@ -360,6 +372,18 @@ while running:
                 del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
                 slimes_a_supprimer = -1
 
+            oiseaux_a_supprimer = -1
+
+            for i in range(len(oiseaux)):
+                if pygame.Rect.colliderect(arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
+                    oiseaux_a_supprimer = i  # On garde l'indice du slime à supprimer
+
+            if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]  # On remet la flèche au niveau de l'arc
+                del oiseaux[oiseaux_a_supprimer]  # On supprime le slime correspondant
+                del oiseaux_x_pos[oiseaux_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
+                oiseaux_a_supprimer = -1
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -411,6 +435,24 @@ while running:
         slimes_x_pos[i] += slimes_x_deplacement[i]
         slimes[i].maj_rect(slimes_x_pos[i], slimes_y)  # Mettre à jour les rect des slimes
         if pygame.Rect.colliderect(chateau_rect, slimes[i].rect[slimes[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
-            slimes_x_pos[i] += 50
+            slimes_x_pos[i] += 150
+            vie_chateau -= 10
+            print(vie_chateau)
+
+    for i in range(len(oiseaux)):
+        oiseaux_x_pos[i] += oiseaux_x_deplacement[i]
+        oiseaux[i].maj_rect(oiseaux_x_pos[i], oiseaux_y)  # Mettre à jour les rect des slimes
+        if pygame.Rect.colliderect(chateau_rect, oiseaux[i].rect[oiseaux[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
+            oiseaux_x_pos[i] += 150
+            vie_chateau -= 10
+            print(vie_chateau)
+
+    if vie_chateau <= 0:
+        defaite = True
+        slimes = []
+        oiseaux = []
+        screen.blit(background_image, (background_x, 0))
+        font = pygame.font.Font("freesansbold.ttf", 64)
+        screen.blit(font.render(f"Vous avez perdu...", True, (255, 255, 255)), (pygame.display.get_window_size()[0] / 2 - 300, pygame.display.get_window_size()[1] / 2 - 32))
 
     pygame.display.update()
