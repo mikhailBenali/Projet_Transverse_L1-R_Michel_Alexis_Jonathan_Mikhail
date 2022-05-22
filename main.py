@@ -27,7 +27,6 @@ background_x_change = 0
 
 clock = pygame.time.Clock()
 
-bow_pos_calc = False
 drawline = False
 
 
@@ -114,8 +113,7 @@ class Arrow(object):
         self.angle = angle
         self.power = power
 
-    @staticmethod
-    def arrow_path(startx, starty, arrow_power, angle, arrow_time):
+    def arrow_path(self, startx, starty, arrow_power, angle, arrow_time):
         velx = cos(radians(angle)) * -arrow_power  # velocity
         vely = sin(radians(angle)) * -arrow_power
 
@@ -127,6 +125,19 @@ class Arrow(object):
 
         return newx, newy
 
+class Particle:
+    def __init__(self, radius):
+        self.radius = random.randint(radius-10, radius)
+        self.max_radius = radius
+        self.angle = random.randint(0, 360)
+        self.size = random.randint(10, 13)
+        self.x = bow_x + 26 + radius * cos(self.angle)
+        self.y = bow_y + 26 + radius * sin(self.angle)
+
+
+    def generate_x_y(self, radius, angle):
+        self.x = bow_x + 26 + radius * cos(angle)
+        self.y = bow_y + 26 + radius * sin(angle)
 
 def rot_center(image, angle):
     """rotate an image while keeping its center and size"""
@@ -156,10 +167,14 @@ def redraw():
             for img in grounded_arrows:
                 screen.blit(img[0], (img[1], img[2]))
         if arrow.trainee:
-            size = 1
-            for trainee in arrow.trainee:
-                screen.fill(trainee[0], (trainee[1], (size, size)))
-                size += 0.5
+            if charge_complete:
+                for trainee in arrow.trainee:
+                    pygame.draw.line(screen, trainee[0], trainee[1], trainee[2], 5)
+            else:
+                size = 1
+                for trainee in arrow.trainee:
+                    screen.fill(trainee[0], (trainee[1], (size, size)))
+                    size += 0.5
 
     # Creation de la cible pour la compétence "Arrow rain"
 
@@ -207,7 +222,6 @@ aptitude_bar_images = pygame.image.load("Images/aptitude_bar/parchemin_9.png")
 # [pygame.image.load(f).convert_alpha() for f in glob("Images/aptitude_bar/parchemin_?.png")]
 arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]
 power = 0
-old_angle = 0
 arrow_angle = {}
 new_arrow_angle = 0
 fallen_arrow = 0
@@ -215,11 +229,15 @@ shoot = False
 outline_size = 10
 grounded_arrows = []
 competence = 0
-arrow_split_ability = 1
+arrow_split_ability = 0
 arrow_rain = 0
+laser_arrow = 0
 arrow_rain_active = 0
 arrow_rain_init = 0
+laser_arrow_init = 0
 ground_target = False
+charge_complete = False
+particle_disperion = 0
 
 # Variable de conditionnement, pour arrêter le programme on passera cette variable à false
 running = True
@@ -242,6 +260,25 @@ while running:
             bow_image = bow_images[3]
     redraw()
 
+    if laser_arrow_init:
+        for particle in charging_particles:
+            screen.fill((255, 0, 0), ((particle.x, particle.y), (particle.size, particle.size)))
+            particle.radius -= 3
+            particle.size -= 0.5
+            particle.generate_x_y(particle.radius, particle.angle)
+            if particle.size == 0 or particle.radius < 0:
+                if particle.max_radius > 13:
+                    particle.max_radius -= 3
+                else:
+                    charge_complete = True
+                charging_particles[charging_particles.index(particle)] = Particle(particle.max_radius)
+    if particle_disperion:
+        for particle in charging_particles:
+            screen.fill((255, 0, 0), ((particle.x, particle.y), (particle.size, particle.size)))
+            particle.radius += 3
+            particle.size -= 0.3
+            particle.generate_x_y(particle.radius, particle.angle)
+
     if arrow_rain_init:
         competence = 1
         arrow_rain_number = random.randint(40, 50)
@@ -251,6 +288,7 @@ while running:
         arrow_rain_active = True
         arrow_rain_init = 0
         arrow_speed = []
+
     if arrow_rain_active:
         for arrow in falling_arrows:
             screen.blit(arrow.image, (arrow.x, arrow.y))
@@ -261,7 +299,9 @@ while running:
                 falling_arrows.remove(arrow)
         if not falling_arrows:
             arrow_rain_active = False
+            arrow_rain = 0
             competence = 0
+
     if len(grounded_arrows) > 50:
         grounded_arrows.pop(0)
     # screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
@@ -270,7 +310,7 @@ while running:
         time += 0.25
         for arrow in arrows_list:
             arrow_number = arrows_list.index(arrow)
-            if arrow.y < 925 and -64 < arrow.x < 1952:
+            if -200 < arrow.y < 925 and -64 < arrow.x < 1952:
                 position = arrow.arrow_path(initial_bow_x, initial_bow_y, arrow.power, arrow.angle, time)
                 arrow_angle[f"arrow_angle_{arrow_number}"] = find_angle((arrow.x, arrow.y), (position[0], position[1]))
                 if f"old_angle_{arrow_number}" in arrow_angle:
@@ -283,14 +323,22 @@ while running:
                 screen.blit(arrow_angle[f"rotated_arrow_{arrow_number}"], (arrow.x, arrow.y))
 
                 # Gère la trainée de la flèche
-                arrow.trainee.append([(235, 138, 126), (arrow.x + 32, arrow.y + 32)])
-                if len(arrow.trainee) > 15:
-                    arrow.trainee.pop(0)
-            elif arrow.x >= 1952 or arrow.x <= -64:
-                arrow.x = bow_x
-                arrow.y = bow_y
-                arrow.trainee = []
-                shoot = False
+                if charge_complete:
+                    for i in range(20):
+                        pass
+                    for j in range(-1, 2):
+                        arrow.trainee.append([(255, 0, 0), (x + 32 + j*2, y + 32 + j*2)]) #TODO finir le laser joli
+                    old_arrow = ()
+                else:
+                    arrow.trainee.append([(235, 138, 126), (arrow.x + 32, arrow.y + 32)])
+                    if len(arrow.trainee) > 15:
+                        arrow.trainee.pop(0)
+            elif arrow.x >= 1952 or arrow.x <= -64 or arrow.y < -200:
+                if not arrow_split_ability == 2:
+                    arrow.x = bow_x
+                    arrow.y = bow_y
+                    arrow.trainee = []
+                    shoot = False
             else:
                 if not arrow_split_ability:
                     grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
@@ -312,10 +360,9 @@ while running:
                     arrows_list.remove(arrow)
                     arrow_split_ability = 0
 
-                # Si la compétence "Arrow_rain" est active, dessiner une cible au sol et faire pleuvoir des flèches depuis le haut de l'écran
+                # Si la compétence "Arrow rain" est active, dessiner une cible au sol et faire pleuvoir des flèches depuis le haut de l'écran
                 if arrow_rain:
                     arrow_rain_init = True
-                    ground_target = True
                     ground_x = arrow.x
                     ground_y = arrow.y + 32
                     width = 100
@@ -334,10 +381,20 @@ while running:
                 running = False
             if event.key == pygame.K_d and perso_x < 1920 - 128:
                 movement = "Droite"
-                perso_x_deplacement = 10
+                perso_x_deplacement = 7.5
             if event.key == pygame.K_q and perso_x > 0:
                 movement = "Gauche"
-                perso_x_deplacement = -10
+                perso_x_deplacement = -7.5
+            if event.key == pygame.K_1:
+                arrow_rain, laser_arrow = 0, 0
+                arrow_split_ability = 1
+            if event.key == pygame.K_2:
+                arrow_split_ability, laser_arrow = 0, 0
+                arrow_rain = 1
+            if event.key == pygame.K_3:
+                arrow_split_ability, arrow_rain = 0, 0
+                laser_arrow = 1
+
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_d and movement == "Droite":
@@ -349,13 +406,34 @@ while running:
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if not shoot and not competence:
+                charge_complete = False
                 drawline = True
                 initial_pos = pygame.mouse.get_pos()
-                bow_pos_calc = True
-                old_angle = 0
+
+                # Si la compétence "Laser arrow" est active, tirer une flèche enn ligne droite avec une trainée rouge qui traverse les ennemis
+                if laser_arrow:
+                    laser_arrow_init = 1
+                    particle_disperion = False
+                    max_radius = 60
+                    charging_particles = []
+                    for i in range(50):
+                        charging_particles.append(Particle(max_radius))
+                    laser_arrow = 0
 
         if event.type == pygame.MOUSEBUTTONUP:
             if not shoot and drawline:
+                if laser_arrow_init:
+                    if charge_complete:
+                        arrows_list[0].power = 500
+                        charging_particles = []
+                    else:
+                        arrows_list[0].power = (sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6)
+                        for i in range(50):
+                            charging_particles[i] = (Particle(max_radius))
+                        particle_disperion = 1
+                    laser_arrow_init = 0
+                else:
+                    arrows_list[0].power = (sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6)
                 drawline = False
                 bow_image = bow_images[0]
                 initial_bow_x = bow_x
@@ -363,7 +441,10 @@ while running:
                 arrows_list[0].angle = find_angle(initial_pos, pos)
                 shoot = True
                 time = 0
-                arrows_list[0].power = sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6
+
+    if laser_arrow_init:
+        movement = ""
+        perso_x_deplacement = 0
 
     if perso_x > 1920 - 128:
         perso_x_deplacement = 0
