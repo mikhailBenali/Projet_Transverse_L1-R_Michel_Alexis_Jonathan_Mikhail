@@ -197,7 +197,7 @@ def redraw():
     global bow_x
     screen.blit(background_image, (background_x, 0))
     # Affichage de la tour
-    tour(chateau_x, chateau_y)
+    screen.blit(chateau_image, (chateau_x, chateau_y))
     for arrow in arrows_list:
         if grounded_arrows:
             for img in grounded_arrows:
@@ -230,6 +230,8 @@ def redraw():
     if perso_x_deplacement == 0:
         perso.idle(perso_x, perso_y)
 
+    pygame.draw.line(screen, (0, 255, 0), (chateau_x, 1000), (chateau_x + vie_chateau/2, 1000), 50)
+
     # Affichage arc
     screen.blit(bowImg, (bow_x, bow_y))
     screen.blit(aptitude_bar_images, (5, 5))
@@ -242,11 +244,6 @@ def redraw():
 
     for i in range(len(oiseaux)):
         oiseaux[i].afficher(oiseaux_x_pos[i], oiseaux_y)
-
-
-def tour(x, y):
-    screen.blit(chateau_image, (x, y))
-
 
 bow_x = perso_x + 40
 bow_y = perso_y + 50
