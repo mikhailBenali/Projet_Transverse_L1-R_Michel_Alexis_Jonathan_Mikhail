@@ -118,12 +118,12 @@ class Sprite:
 
 
 slimes = [Sprite("slime") for i in range(5)]
-slimes_x_pos = [x for x in range(1280, 1920, 128)]  # [random.randint(1500, 1800) for slime in slimes]  # 1920, 2600
+random.seed(tm.time())
+slimes_x_pos = [random.randint(1500, 1800) for slime in slimes]  # 1920, 2600
 slimes_y = 825
 for i in range(len(slimes)):  # Mettre à jour les rect des slimes une première fois
     slimes[i].maj_rect(slimes_x_pos[i], slimes_y)
-random.seed(tm.time())
-slimes_x_deplacement = [-3, -3, -3, -3, -3]  # [random.randint(-3, -1) for slime in slimes]
+slimes_x_deplacement = [random.choice([x / 10 for x in range(-40, -10)]) for slime in slimes]  # Pour avoir des vitesses entre -4.0 et -1.0
 
 
 class Arrow(object):
@@ -209,7 +209,7 @@ def redraw():
     screen.blit(aptitude_bar_images, (5, 5))
     perso_x += perso_x_deplacement
     bow_x = perso_x + 40
-    clock.tick(30)
+    clock.tick(60)
 
     for i in range(len(slimes)):
         slimes[i].afficher(slimes_x_pos[i], slimes_y)
