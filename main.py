@@ -356,7 +356,7 @@ while running:
 
             if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
                 hit = True  # On arrête les calculs de tir (trajectoires etc...)
-                arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), arrow.x, 925)]  # On remet la flèche au niveau de l'arc
+                shoot = False
                 del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
                 del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
                 slimes_a_supprimer = -1
@@ -369,7 +369,7 @@ while running:
 
             if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
                 hit = True  # On arrête les calculs de tir (trajectoires etc...)
-                arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), arrow.x, 925)]  # On remet la flèche au niveau de l'arc
+                shoot = False
                 del oiseaux[oiseaux_a_supprimer]  # On supprime le slime correspondant
                 del oiseaux_x_pos[oiseaux_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
                 oiseaux_a_supprimer = -1
@@ -410,8 +410,10 @@ while running:
 
                 # SI la compétence "splitting arrows" est active, séparer les flèches en deux à l'impact
                 if arrow_split_ability == 1:
+                    shoot = True
+                    hit = False
                     arrows_list.append(Arrow(arrow.x, 925 - 10, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), new_arrow_angle, arrow.power / 1.6))
-                    arrow.y = 925 - 10
+                    arrow.y = arrow.y - 20
                     arrow.power /= 1.5
                     time = 0
                     initial_bow_x = arrow.x
@@ -419,8 +421,10 @@ while running:
                     angle = 360 - new_arrow_angle
                     arrow_split_ability += 1
                 elif arrow_split_ability == 2:  # Une fois qu'une des flèches split touche le sol
+                    shoot = True
                     fallen_arrow += 1
-                    grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
+                    if not hit:
+                        grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
                     arrows_list.remove(arrow)
                     arrow_split_ability = 0
 
