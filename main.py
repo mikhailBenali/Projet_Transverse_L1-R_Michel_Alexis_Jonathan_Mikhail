@@ -15,11 +15,14 @@ pygame.display.set_caption("Pana pua")
 
 chateau_image = pygame.image.load("Images/Chateau.png").convert_alpha()
 chateau_image = pygame.transform.scale(chateau_image, (512, 600))
-tour_x = 50
-largeur_tour = 201
 
-taille_tour = 256
-tour_y = 355
+chateau_x = 50
+chateau_y = 355
+largeur_chateau = 512
+taille_chateau = 600
+vie_chateau = 1000
+
+chateau_rect = chateau_image.get_rect(topleft=(chateau_x - 30, chateau_y))  # - 30 car la box du slime est un peu plus large que lui-même
 
 background_image = pygame.image.load("Images/background.jpg").convert()
 background_x = 0
@@ -31,14 +34,15 @@ drawline = False
 
 
 # Personnage
-class Joueur(pygame.sprite.Sprite):
+class Joueur:
 
     def __init__(self):
         self.images_droite = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Persos/perso??.png")]
         self.images_gauche = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Persos/perso??_gauche.png")]
         self.orientation = "droite"  # Sert pour la direction de l'idle
         self.frame = 0
-        self.tmps_derniere_frame = 0
+        self.temps_derniere_frame = 0
+        self.rect = [self.images_droite[i].get_rect() for i in range(len(self.images_droite))] + [self.images_gauche[i].get_rect() for i in range(len(self.images_gauche))]  # Chaque image a son rectangle de collision
 
     def idle(self, x, y):
         if self.orientation == "droite":
@@ -48,9 +52,10 @@ class Joueur(pygame.sprite.Sprite):
 
     def mvt_droite(self, x, y):
         self.orientation = "droite"
-        if tm.time() - self.tmps_derniere_frame > 0.2:
+        if tm.time() > self.temps_derniere_frame + 0.2:
             if self.frame + 1 >= len(self.images_droite):
                 self.frame = 0
+                self.mvt_droite(x, y)
             else:
                 self.frame += 1
             screen.blit(self.images_droite[self.frame], (x, y))
@@ -61,9 +66,10 @@ class Joueur(pygame.sprite.Sprite):
 
     def mvt_gauche(self, x, y):
         self.orientation = "gauche"
-        if tm.time() - self.tmps_derniere_frame > 0.2:
+        if tm.time() > self.temps_derniere_frame + 0.2:
             if self.frame + 1 >= len(self.images_gauche):
                 self.frame = 0
+                self.mvt_gauche(x, y)
             else:
                 self.frame += 1
             screen.blit(self.images_gauche[self.frame], (x, y))
@@ -73,13 +79,16 @@ class Joueur(pygame.sprite.Sprite):
             screen.blit(self.images_gauche[self.frame], (x, y))
 
     def nouvelle_frame(self):
-        self.tmps_derniere_frame = tm.time()
+        self.temps_derniere_frame = tm.time()
+
+    def maj_rect(self, x, y):
+        self.rect = [self.images_droite[i].get_rect(topleft=(x, y)) for i in range(len(self.images_droite))] + [self.images_gauche[i].get_rect(topleft=(x, y)) for i in range(len(self.images_gauche))]
 
 
 perso = Joueur()
 perso_x = 50
 perso_x_deplacement = 0
-perso_y = 840
+perso_y = 825
 
 
 class Sprite:
@@ -87,20 +96,41 @@ class Sprite:
         self.images = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/{dossier}/*.png")]
         self.frame = 0
         self.temps_derniere_frame = 0
+        self.rect = [self.images[i].get_rect() for i in range(len(self.images))]  # Chaque image a son rectangle de collision
 
     def afficher(self, x, y):
-        self.temps_derniere_frame = tm.time()
-        screen.blit(self.images[self.frame], (x, y))
+        if tm.time() > self.temps_derniere_frame + 0.05:
+            if self.frame + 1 < len(self.images):  # S'il est possible de passer à la frame suivante
+                screen.blit(self.images[self.frame], (x, y))
+                self.frame += 1
+                self.changer_frame()
+            else:
+                self.frame = 0
+                self.afficher(x, y)
+        else:
+            screen.blit(self.images[self.frame], (x, y))
 
     def changer_frame(self):
-        if tm.time() > self.temps_derniere_frame + 500:
-            self.frame += 1
+        self.temps_derniere_frame = tm.time()
+
+    def maj_rect(self, x, y):
+        self.rect = [self.images[i].get_rect(topleft=(x, y)) for i in range(len(self.images))]
 
 
 slimes = [Sprite("slime") for i in range(5)]
-slimes_x_pos = [random.randint(1920, 2600) for slime in slimes]
-slimes_y = 800
-slimes_x_deplacement = [random.randint(1, 8) for slime in slimes]
+random.seed(tm.time())
+slimes_x_pos = [random.randint(1500, 1800) for slime in slimes]  # 1920, 2600
+slimes_y = 825
+for i in range(len(slimes)):  # Mettre à jour les rect des slimes une première fois
+    slimes[i].maj_rect(slimes_x_pos[i], slimes_y)
+slimes_x_deplacement = [random.choice([x / 10 for x in range(-40, -10)]) for slime in slimes]  # Pour avoir des vitesses entre -4.0 et -1.0
+
+oiseaux = [Sprite("bird") for i in range(5)]
+oiseaux_x_pos = [random.randint(1500, 1800) for oiseau in oiseaux]
+oiseaux_y = 600
+for i in range(len(slimes)):
+    oiseaux[i].maj_rect(oiseaux_x_pos[i], oiseaux_y)
+oiseaux_x_deplacement = [random.choice([x / 10 for x in range(-60, -30)]) for oiseau in oiseaux]
 
 
 class Arrow(object):
@@ -112,6 +142,7 @@ class Arrow(object):
         self.trainee = []
         self.angle = angle
         self.power = power
+        self.rect = self.image.get_rect()
 
     def arrow_path(self, startx, starty, arrow_power, angle, arrow_time):
         velx = cos(radians(angle)) * -arrow_power  # velocity
@@ -139,6 +170,10 @@ class Particle:
         self.x = bow_x + 26 + radius * cos(angle)
         self.y = bow_y + 26 + radius * sin(angle)
 
+def maj_rect(self, x, y):
+    self.rect = self.image.get_rect(topleft=(x, y))
+
+
 def rot_center(image, angle):
     """rotate an image while keeping its center and size"""
     orig_rect = image.get_rect()
@@ -161,7 +196,7 @@ def redraw():
     global bow_x
     screen.blit(background_image, (background_x, 0))
     # Affichage de la tour
-    tour(tour_x, tour_y)
+    tour(chateau_x, chateau_y)
     for arrow in arrows_list:
         if grounded_arrows:
             for img in grounded_arrows:
@@ -201,13 +236,11 @@ def redraw():
     bow_x = perso_x + 40
     clock.tick(60)
 
-    """i = 0
-    for slime in slimes:
-        i += 1
-        slime.afficher(slimes_x_pos[i], slimes_y)"""
+    for i in range(len(slimes)):
+        slimes[i].afficher(slimes_x_pos[i], slimes_y)
 
-
-font = pygame.font.Font("freesansbold.ttf", 32)
+    for i in range(len(oiseaux)):
+        oiseaux[i].afficher(oiseaux_x_pos[i], oiseaux_y)
 
 
 def tour(x, y):
@@ -242,6 +275,7 @@ particle_disperion = 0
 # Variable de conditionnement, pour arrêter le programme on passera cette variable à false
 running = True
 movement = False
+defaite = False
 
 while running:
     pos = pygame.mouse.get_pos()
@@ -252,11 +286,11 @@ while running:
         # Gère le bandage de l'arc
         if 0 <= distance < 250:
             bow_image = bow_images[0]
-        if 250 <= distance < 500:
+        elif 250 <= distance < 500:
             bow_image = bow_images[1]
-        if 500 <= distance < 750:
+        elif 500 <= distance < 750:
             bow_image = bow_images[2]
-        if 750 <= distance:
+        elif 750 <= distance:
             bow_image = bow_images[3]
     redraw()
 
@@ -304,7 +338,6 @@ while running:
 
     if len(grounded_arrows) > 50:
         grounded_arrows.pop(0)
-    # screen.blit(font.render(f"{pygame.mouse.get_pos()[0]},{pygame.mouse.get_pos()[1]}", True, (255, 0, 0)), (0, 0))  # Affiche la position de la souris
 
     if shoot:
         time += 0.25
@@ -372,6 +405,34 @@ while running:
                 arrow.y = bow_y
                 arrow.trainee = []
 
+            arrow.maj_rect(arrow.x, arrow.y)
+
+            # Collisions avec les slimes
+
+            slimes_a_supprimer = -1
+
+            for i in range(len(slimes)):
+                if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]):
+                    slimes_a_supprimer = i  # On garde l'indice du slime à supprimer
+
+            if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]  # On remet la flèche au niveau de l'arc
+                del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
+                del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
+                slimes_a_supprimer = -1
+
+            oiseaux_a_supprimer = -1
+
+            for i in range(len(oiseaux)):
+                if pygame.Rect.colliderect(arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
+                    oiseaux_a_supprimer = i  # On garde l'indice du slime à supprimer
+
+            if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]  # On remet la flèche au niveau de l'arc
+                del oiseaux[oiseaux_a_supprimer]  # On supprime le slime correspondant
+                del oiseaux_x_pos[oiseaux_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent
+                oiseaux_a_supprimer = -1
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -379,7 +440,7 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
-            if event.key == pygame.K_d and perso_x < 1920 - 128:
+            if event.key == pygame.K_d and perso_x < 1920 - 128:  # On ne peut pas démarrer un déplacement au bord de l'écran vers l'extérieur
                 movement = "Droite"
                 perso_x_deplacement = 7.5
             if event.key == pygame.K_q and perso_x > 0:
@@ -446,11 +507,35 @@ while running:
         movement = ""
         perso_x_deplacement = 0
 
-    if perso_x > 1920 - 128:
+    if perso_x > 1920 - 128:  # Replacer le perso s'il sort
         perso_x_deplacement = 0
         perso_x = 1920 - 128
     if perso_x < 0:
         perso_x_deplacement = 0
         perso_x = 0
+
+    for i in range(len(slimes)):
+        slimes_x_pos[i] += slimes_x_deplacement[i]
+        slimes[i].maj_rect(slimes_x_pos[i], slimes_y)  # Mettre à jour les rect des slimes
+        if pygame.Rect.colliderect(chateau_rect, slimes[i].rect[slimes[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
+            slimes_x_pos[i] += 150
+            vie_chateau -= 10
+            print(vie_chateau)
+
+    for i in range(len(oiseaux)):
+        oiseaux_x_pos[i] += oiseaux_x_deplacement[i]
+        oiseaux[i].maj_rect(oiseaux_x_pos[i], oiseaux_y)  # Mettre à jour les rect des slimes
+        if pygame.Rect.colliderect(chateau_rect, oiseaux[i].rect[oiseaux[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
+            oiseaux_x_pos[i] += 150
+            vie_chateau -= 10
+            print(vie_chateau)
+
+    if vie_chateau <= 0:
+        defaite = True
+        slimes = []
+        oiseaux = []
+        screen.blit(background_image, (background_x, 0))
+        font = pygame.font.Font("freesansbold.ttf", 64)
+        screen.blit(font.render(f"Vous avez perdu...", True, (255, 255, 255)), (pygame.display.get_window_size()[0] / 2 - 300, pygame.display.get_window_size()[1] / 2 - 32))
 
     pygame.display.update()
