@@ -469,7 +469,7 @@ while running:
             redraw()
 
             # Barre d'xp
-            if experience == max_xp:
+            if experience >= max_xp:
                 experience = 0
                 max_xp += 5
                 competence_point += 1
@@ -830,7 +830,7 @@ while running:
         else:
             screen.blit(background_image, (background_x, 0))
             font = pygame.font.Font("freesansbold.ttf", 64)
-            screen.blit(font.render(f"Vous avez perdu...", True, (255, 255, 255)), (500, 950))
+            screen.blit(font.render(f"Vous avez perdu...", True, (255, 255, 255)), (boutons_play_again.x - 150, 350))
 
             boutons_play_again.afficher()
             for event in pygame.event.get():
@@ -913,7 +913,7 @@ while running:
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    running = False
+                    jeu_pause = False
 
     else:
         screen.blit(background_image, (background_x, 0))
