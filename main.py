@@ -407,7 +407,7 @@ debut = True
 outline_size = 10
 grounded_arrows = []
 competence_active = 0
-active_competences = [0, 1]
+active_competences = [0, 1, 2]
 arrow_split_ability = 0
 arrow_rain = 0
 laser_arrow = 0
@@ -419,6 +419,7 @@ charge_complete = False
 particle_disperion = 0
 hit = False
 laser = False
+rect_collision_laser = pygame.Rect((0, 0), (0, 0))
 
 # Variable de conditionnement : pour arrêter le programme on passera cette variable à false
 running = True
@@ -466,54 +467,69 @@ while running:
                     particle.size -= 0.3
                     particle.generate_x_y(particle.radius, particle.angle)
 
-        if arrow_rain_init:
-            competence_active = 1
-            arrow_rain_number = random.randint(40, 50)
-            falling_arrows = []
-            for i in range(arrow_rain_number):
-                falling_arrows.append(Arrow(ground_x - 2 * random.randint(50, 400), -random.randint(80, 1000), rot_center(pygame.image.load("Images/Arc/phlaitche-1.png"), 250).convert_alpha(), 0, 100))
-            arrow_rain_active = True
-            arrow_rain_init = 0
-            arrow_speed = []
+            if arrow_rain_init:
+                competence_active = 1
+                arrow_rain_number = random.randint(40, 50)
+                falling_arrows = []
+                for i in range(arrow_rain_number):
+                    falling_arrows.append(Arrow(ground_x - 2 * random.randint(50, 400), -random.randint(80, 1000), rot_center(pygame.image.load("Images/Arc/phlaitche-1.png"), 250).convert_alpha(), 0, 100))
+                arrow_rain_active = True
+                arrow_rain_init = 0
+                arrow_speed = []
 
-        if arrow_rain_active:
-            for arrow in falling_arrows:
-                screen.blit(arrow.image, (arrow.x, arrow.y))
-                arrow.x += 10
-                arrow.y += 30
-                if arrow.y > 925:
-                    grounded_arrows.append([arrow.image, arrow.x, arrow.y])
-                    falling_arrows.remove(arrow)
+            if arrow_rain_active:
+                for arrow in falling_arrows:
+                    screen.blit(arrow.image, (arrow.x, arrow.y))
+                    arrow.x += 10
+                    arrow.y += 30
+                    if arrow.y > 925:
+                        grounded_arrows.append([arrow.image, arrow.x, arrow.y])
+                        falling_arrows.remove(arrow)
 
-                for falling_arrow in falling_arrows:
-                    falling_arrow.maj_rect(falling_arrow.x, falling_arrow.y)
-
-                slimes_a_supprimer = -1
-                oiseaux_a_supprimer = -1
-
-                for i in range(len(slimes)):
                     for falling_arrow in falling_arrows:
-                        if pygame.Rect.colliderect(falling_arrow.rect, slimes[i].rect[slimes[i].frame]):
-                            slimes_a_supprimer = i
-                for i in range(len(oiseaux)):
-                    for falling_arrow in falling_arrows:
-                        if pygame.Rect.colliderect(falling_arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
-                            oiseaux_a_supprimer = i
+                        falling_arrow.maj_rect(falling_arrow.x, falling_arrow.y)
 
-                if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
-                    del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
-                    del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
                     slimes_a_supprimer = -1
-
-                if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
-                    del oiseaux[oiseaux_a_supprimer]  # On supprime le slime correspondant
-                    del oiseaux_x_pos[oiseaux_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
                     oiseaux_a_supprimer = -1
 
-            if not falling_arrows:
-                arrow_rain_active = False
-                arrow_rain = 0
-                competence_active = 0
+                    for i in range(len(slimes)):
+                        for falling_arrow in falling_arrows:
+                            if pygame.Rect.colliderect(falling_arrow.rect, slimes[i].rect[slimes[i].frame]):
+                                slimes_a_supprimer = i
+                    for i in range(len(oiseaux)):
+                        for falling_arrow in falling_arrows:
+                            if pygame.Rect.colliderect(falling_arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
+                                oiseaux_a_supprimer = i
+
+                    if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                        del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
+                        del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
+                        slimes_a_supprimer = -1
+                        slimes.append(Sprite("slime"))
+                        slimes_x_pos.append(random.randint(1700, 2500))
+                        slimes[len(slimes) - 1].maj_rect(slimes_x_pos[i], slimes_y)
+                        slimes_x_deplacement[len(slimes_x_deplacement) - 1] = random.choice([x / 10 for x in range(-60, -30)])
+
+                        experience += 1
+                        slimes_a_supprimer = -1
+
+
+                    if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                        del oiseaux[oiseaux_a_supprimer]  # On supprime le slime correspondant
+                        del oiseaux_x_pos[oiseaux_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
+                        oiseaux_a_supprimer = -1
+                        oiseaux.append(Sprite("bird"))
+                        oiseaux_x_pos.append(random.randint(1700, 2500))
+                        oiseaux[len(slimes) - 1].maj_rect(oiseaux_x_pos[i], oiseaux_y[i])
+                        oiseaux_x_deplacement[len(oiseaux_x_deplacement) - 1] = random.choice([x / 10 for x in range(-60, -30)])
+
+                        experience += 1
+                        oiseaux_a_supprimer = -1
+
+                if not falling_arrows:
+                    arrow_rain_active = False
+                    arrow_rain = 0
+                    competence_active = 0
 
             if len(grounded_arrows) > 50:
                 grounded_arrows.pop(0)
@@ -530,7 +546,7 @@ while running:
                     # Suppression des slimes
 
                     for i in range(len(slimes)):
-                        if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]):
+                        if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]) or pygame.Rect.colliderect(rect_collision_laser, slimes[i].rect[slimes[i].frame]):
                             slimes_a_supprimer = i  # On garde l'indice du slime à supprimer
 
                     if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
@@ -552,7 +568,7 @@ while running:
                     # Suppression des oiseaux
 
                     for i in range(len(oiseaux)):
-                        if pygame.Rect.colliderect(arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
+                        if pygame.Rect.colliderect(arrow.rect, oiseaux[i].rect[oiseaux[i].frame]) or pygame.Rect.colliderect(rect_collision_laser, oiseaux[i].rect[oiseaux[i].frame]):
                             oiseaux_a_supprimer = i
 
                     if oiseaux_a_supprimer != -1:
@@ -569,44 +585,45 @@ while running:
                         experience += 1
                         oiseaux_a_supprimer = -1
 
-                if -500 < arrow.y < 925 and -64 < arrow.x < 1952 and not hit:
-                    position = arrow.arrow_path(initial_bow_x, initial_bow_y, arrow.power, arrow.angle, time)
-                    arrow_angle[f"arrow_angle_{arrow_number}"] = find_angle((arrow.x, arrow.y), (position[0], position[1]))
-                    if f"old_angle_{arrow_number}" in arrow_angle:
-                        new_arrow_angle = (arrow_angle[f"arrow_angle_{arrow_number}"] + arrow_angle[f"old_angle_{arrow_number}"]) / 2
-                    arrow.x = position[0]
-                    arrow.y = position[1]
-                    arrow_angle[f"old_angle_{arrow_number}"] = arrow_angle[f"arrow_angle_{arrow_number}"]
-                    # Gère la rotation de la flèche
-                    arrow_angle[f"rotated_arrow_{arrow_number}"] = rot_center(arrow.image, new_arrow_angle - 45).convert_alpha()
-                    screen.blit(arrow_angle[f"rotated_arrow_{arrow_number}"], (arrow.x, arrow.y))
+                    if -500 < arrow.y < 925 and -64 < arrow.x < 1952 and not hit:
+                        position = arrow.arrow_path(initial_bow_x, initial_bow_y, arrow.power, arrow.angle, time)
+                        arrow_angle[f"arrow_angle_{arrow_number}"] = find_angle((arrow.x, arrow.y), (position[0], position[1]))
+                        if f"old_angle_{arrow_number}" in arrow_angle:
+                            new_arrow_angle = (arrow_angle[f"arrow_angle_{arrow_number}"] + arrow_angle[f"old_angle_{arrow_number}"]) / 2
+                        arrow.x = position[0]
+                        arrow.y = position[1]
+                        arrow_angle[f"old_angle_{arrow_number}"] = arrow_angle[f"arrow_angle_{arrow_number}"]
+                        # Gère la rotation de la flèche
+                        arrow_angle[f"rotated_arrow_{arrow_number}"] = rot_center(arrow.image, new_arrow_angle - 45).convert_alpha()
+                        screen.blit(arrow_angle[f"rotated_arrow_{arrow_number}"], (arrow.x, arrow.y))
 
-                    # Gère la trainée de la flèche
-                    if charge_complete:
-                        separation_x = (arrow.x - old_arrow[0]) / 100
-                        separation_y = (arrow.y - old_arrow[1]) / 100
-                        for i in range(1, 100):
-                            for j in range(-1, 2):
-                                arrow.trainee.append([(200, 0, 0), (arrow.x + 32 + separation_x * i + j * 2, arrow.y + 32 + separation_y*i + j * 2)])
-                                if len(arrow.trainee) > 2000:
-                                    arrow.trainee.pop(0)
-                        old_arrow = [arrow.x, arrow.y]
+                        # Gère la trainée de la flèche
+                        if charge_complete:
+                            separation_x = (arrow.x - old_arrow[0]) / 100
+                            separation_y = (arrow.y - old_arrow[1]) / 100
+                            for i in range(1, 100):
+                                for j in range(-1, 2):
+                                    arrow.trainee.append([(200, 0, 0), (arrow.x + 32 + separation_x * i + j * 2, arrow.y + 32 + separation_y*i + j * 2)])
+                                    if len(arrow.trainee) > 2000:
+                                        arrow.trainee.pop(0)
+                            old_arrow = [arrow.x, arrow.y]
+                        else:
+                            arrow.trainee.append([(235, 138, 126), (arrow.x + 32, arrow.y + 32)])
+                            if len(arrow.trainee) > 15:
+                                arrow.trainee.pop(0)
+                    elif arrow.x >= 1952 or arrow.x <= -64 or arrow.y < -500 or arrow.y > 940:
+                        if not arrow_split_ability == 2:
+                            charge_complete = False
+                            rect_collision_laser = pygame.Rect((0, 0), (0, 0))
+                            laser = False
+                            arrow.x = bow_x
+                            arrow.y = bow_y
+                            arrow.trainee = []
+                            shoot = False
                     else:
-                        arrow.trainee.append([(235, 138, 126), (arrow.x + 32, arrow.y + 32)])
-                        if len(arrow.trainee) > 15:
-                            arrow.trainee.pop(0)
-                elif arrow.x >= 1952 or arrow.x <= -64 or arrow.y < -500 or arrow.y > 940:
-                    if not arrow_split_ability == 2:
-                        charge_complete = False
-                        laser = False
-                        arrow.x = bow_x
-                        arrow.y = bow_y
-                        arrow.trainee = []
-                        shoot = False
-                else:
-                    if not arrow_split_ability and not hit:
-                        grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
-                        shoot = False
+                        if not arrow_split_ability and not hit:
+                            grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
+                            shoot = False
 
                         # SI la compétence "splitting arrows" est active, séparer les flèches en deux à l'impact
                         if arrow_split_ability == 1:
@@ -636,12 +653,12 @@ while running:
                             width = 100
                             height = 50
 
-                    if laser:
-                        shoot = True
-                    else:
-                        arrow.x = bow_x
-                        arrow.y = bow_y
-                        arrow.trainee = []
+                        if laser:
+                            shoot = True
+                        else:
+                            arrow.x = bow_x
+                            arrow.y = bow_y
+                            arrow.trainee = []
 
                     arrow.maj_rect(arrow.x, arrow.y)
 
@@ -700,30 +717,30 @@ while running:
                                 charging_particles.append(Particle(max_radius))
                             laser_arrow = 0
 
-            if event.type == pygame.MOUSEBUTTONUP:
-                if not shoot and drawline:
-                    drawline = False
-                    bow_image = bow_images[0]
-                    initial_bow_x = bow_x
-                    initial_bow_y = bow_y
-                    arrows_list[0].angle = find_angle(initial_pos, pos)
-                    shoot = True
-                    time = 0
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if not shoot and drawline:
+                        drawline = False
+                        bow_image = bow_images[0]
+                        initial_bow_x = bow_x
+                        initial_bow_y = bow_y
+                        arrows_list[0].angle = find_angle(initial_pos, pos)
+                        shoot = True
+                        time = 0
 
-                    if laser_arrow_init:
-                        if charge_complete:
-                            old_arrow = [initial_bow_x, initial_bow_y]
-                            arrows_list[0].power = 500
-                            charging_particles = []
-                            laser = True
+                        if laser_arrow_init:
+                            if charge_complete:
+                                old_arrow = [initial_bow_x, initial_bow_y]
+                                arrows_list[0].power = 500
+                                charging_particles = []
+                                laser = True
+                            else:
+                                arrows_list[0].power = (sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6)
+                                for i in range(50):
+                                    charging_particles[i] = (Particle(max_radius))
+                                particle_disperion = 1
+                            laser_arrow_init = 0
                         else:
                             arrows_list[0].power = (sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6)
-                            for i in range(50):
-                                charging_particles[i] = (Particle(max_radius))
-                            particle_disperion = 1
-                        laser_arrow_init = 0
-                    else:
-                        arrows_list[0].power = (sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6)
 
             if laser_arrow_init:
                 movement = ""
