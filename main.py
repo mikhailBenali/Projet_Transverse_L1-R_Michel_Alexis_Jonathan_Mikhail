@@ -623,6 +623,7 @@ while running:
                                 arrow.trainee.pop(0)
                     elif arrow.x >= 1952 or arrow.x <= -64 or arrow.y < -500 or arrow.y > 940:
                         if not arrow_split_ability == 2:
+                            arrow_trainee_rects = []
                             charge_complete = False
                             laser = False
                             arrow.x = bow_x
