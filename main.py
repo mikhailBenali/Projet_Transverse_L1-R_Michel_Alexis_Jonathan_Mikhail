@@ -837,7 +837,10 @@ while running:
                 if event.type == pygame.MOUSEBUTTONDOWN and boutons_play_again.pointe:
                     chateau.vie = chateau.vie_max
                     chateau.detruit = False
-
+                    competence_point = 0
+                    competence_active = []
+                    experience = 0
+                    MAXED = []
                     perso_x = chateau_x + 50
                     perso_y = chateau_y + 225  # 825
                     bow_x = perso_x + 40
