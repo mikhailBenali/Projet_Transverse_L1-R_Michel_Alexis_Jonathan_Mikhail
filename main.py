@@ -416,10 +416,10 @@ arrow_rain_init = 0
 laser_arrow_init = 0
 ground_target = False
 charge_complete = False
+arrow_trainee_rects = []
 particle_disperion = 0
 hit = False
 laser = False
-rect_collision_laser = pygame.Rect((0, 0), (0, 0))
 
 # Variable de conditionnement : pour arrêter le programme on passera cette variable à false
 running = True
@@ -469,7 +469,7 @@ while running:
 
             if arrow_rain_init:
                 competence_active = 1
-                arrow_rain_number = random.randint(40, 50)
+                arrow_rain_number = random.randint(25, 30)
                 falling_arrows = []
                 for i in range(arrow_rain_number):
                     falling_arrows.append(Arrow(ground_x - 2 * random.randint(50, 400), -random.randint(80, 1000), rot_center(pygame.image.load("Images/Arc/phlaitche-1.png"), 250).convert_alpha(), 0, 100))
@@ -546,8 +546,13 @@ while running:
                     # Suppression des slimes
 
                     for i in range(len(slimes)):
-                        if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]) or pygame.Rect.colliderect(rect_collision_laser, slimes[i].rect[slimes[i].frame]):
+                        if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]):
                             slimes_a_supprimer = i  # On garde l'indice du slime à supprimer
+                        elif arrow_trainee_rects:
+                            for particle in arrow_trainee_rects:
+                                if pygame.Rect.colliderect(particle, slimes[i].rect[slimes[i].frame]):
+                                    slimes_a_supprimer = i
+                                    arrow_trainee_rects.remove(particle)
 
                     if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
                         hit = True  # On arrête les calculs de tir (trajectoires etc...)
@@ -568,8 +573,13 @@ while running:
                     # Suppression des oiseaux
 
                     for i in range(len(oiseaux)):
-                        if pygame.Rect.colliderect(arrow.rect, oiseaux[i].rect[oiseaux[i].frame]) or pygame.Rect.colliderect(rect_collision_laser, oiseaux[i].rect[oiseaux[i].frame]):
+                        if pygame.Rect.colliderect(arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
                             oiseaux_a_supprimer = i
+                        elif arrow_trainee_rects:
+                            for particle in arrow_trainee_rects:
+                                if pygame.Rect.colliderect(particle, oiseaux[i].rect[oiseaux[i].frame]):
+                                    oiseaux_a_supprimer = i
+                                    arrow_trainee_rects.remove(particle)
 
                     if oiseaux_a_supprimer != -1:
                         hit = True
@@ -602,10 +612,10 @@ while running:
                             separation_x = (arrow.x - old_arrow[0]) / 100
                             separation_y = (arrow.y - old_arrow[1]) / 100
                             for i in range(1, 100):
-                                for j in range(-1, 2):
-                                    arrow.trainee.append([(200, 0, 0), (arrow.x + 32 + separation_x * i + j * 2, arrow.y + 32 + separation_y*i + j * 2)])
-                                    if len(arrow.trainee) > 2000:
-                                        arrow.trainee.pop(0)
+                                arrow.trainee.append([(200, 0, 0), (arrow.x + 32 + separation_x * i, arrow.y + 32 + separation_y*i)])
+                                arrow_trainee_rects.append(pygame.Rect((arrow.x + 32 + separation_x * i, arrow.y + 32 + separation_y*i), (arrow.x + 42 + separation_x * i, arrow.y + 42 + separation_y*i)))
+                                if len(arrow.trainee) > 200:
+                                    arrow.trainee.pop(0)
                             old_arrow = [arrow.x, arrow.y]
                         else:
                             arrow.trainee.append([(235, 138, 126), (arrow.x + 32, arrow.y + 32)])
@@ -614,7 +624,6 @@ while running:
                     elif arrow.x >= 1952 or arrow.x <= -64 or arrow.y < -500 or arrow.y > 940:
                         if not arrow_split_ability == 2:
                             charge_complete = False
-                            rect_collision_laser = pygame.Rect((0, 0), (0, 0))
                             laser = False
                             arrow.x = bow_x
                             arrow.y = bow_y
