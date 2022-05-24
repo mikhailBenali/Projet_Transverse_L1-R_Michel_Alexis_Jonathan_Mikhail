@@ -29,13 +29,46 @@ largeur_chateau = 512
 taille_chateau = 600
 
 
+# Boutons
+
+class Bouton:
+    def __init__(self, nom_bouton, coordonnees, taille_resize):
+        self.images = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Boutons/{nom_bouton}*png")]
+        self.x = coordonnees[0]
+        self.y = coordonnees[1]
+        self.largeur = taille_resize[0]
+        self.hauteur = taille_resize[1]
+        for i in range(len(self.images)):
+            self.images[i] = pygame.transform.scale(self.images[i], (self.largeur, self.hauteur))
+        self.rect = [image.get_rect(topleft=(self.x, self.y)) for image in self.images]
+        self.pointe = False
+
+    def afficher(self):
+        if self.rect[0].x < pygame.mouse.get_pos()[0] < self.rect[0].x + self.largeur and self.rect[0].y < pygame.mouse.get_pos()[1] < self.rect[0].y + self.hauteur:  # Si le bouton est pointé
+            screen.blit(self.images[0], (self.rect[0].x, self.rect[0].y))
+            self.pointe = True
+        else:
+            screen.blit(self.images[1], (self.rect[0].x, self.rect[0].y))
+            self.pointe = False
+
+
+boutons_play = Bouton("Bouton_play", (842, 512), (236, 56))  # 118x28 (118x24) sans les pixels transparents
+boutons_pause = Bouton("Bouton_rond_pause", (1864, 0), (56, 56))  # 28x28
+boutons_resume = Bouton("Bouton_resume", (842, 512), (236, 56))  # 118x28
+boutons_quit = Bouton("Bouton_quit", (1684, 1024), (236, 56))  # 118x28
+boutons_play_again = Bouton("Bouton_play_again", (842, 512), (236, 56))  # 118x28
+
+
 class Chateau:
     def __init__(self):
         self.vie_max = 1000
-        self.vie = 1000
-        self.images_full_hp = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Chateau/schato_drapeau*.png")]
+        self.vie = self.vie_max
+
+        # Images
+
+        self.images_full_hp = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Chateau/schato_drapeau*.png")]  # Chargement des images
         for i in range(len(self.images_full_hp)):
-            self.images_full_hp[i] = pygame.transform.scale(self.images_full_hp[i], (512, 600))
+            self.images_full_hp[i] = pygame.transform.scale(self.images_full_hp[i], (512, 600))  # Agrandissement
 
         self.images_75_hp = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Chateau/schato_destr_25*.png")]
         for i in range(len(self.images_75_hp)):
@@ -48,6 +81,12 @@ class Chateau:
         self.images_25_hp = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Chateau/schato_destr_75*.png")]
         for i in range(len(self.images_25_hp)):
             self.images_25_hp[i] = pygame.transform.scale(self.images_25_hp[i], (512, 600))
+
+        self.images_destruction = [pygame.image.load(f).convert_alpha() for f in glob(f"Images/Fumee/*.png")]
+        for i in range(len(self.images_destruction)):
+            self.images_destruction[i] = pygame.transform.scale(self.images_destruction[i], (512, 600))
+
+        self.detruit = False
 
         self.frame = 0
         self.rect = pygame.Rect(chateau_x, chateau_y, largeur_chateau, taille_chateau)
@@ -100,7 +139,23 @@ class Chateau:
                 screen.blit(self.images_25_hp[self.frame], (chateau_x, chateau_y))
 
         else:
-            pass  # todo Mettre la destruction du château
+            self.destruction()
+
+    def destruction(self):
+        i = 0
+        while i < len(self.images_destruction):
+            if tm.time() > self.temps_derniere_frame + 0.2:
+                self.temps_derniere_frame = tm.time()
+                screen.blit(self.images_destruction[i], (chateau_x, chateau_y))
+                pygame.display.update()
+                i += 1
+            else:
+                screen.blit(self.images_destruction[i], (chateau_x, chateau_y))
+        self.detruit = True
+
+    def reset(self):
+        self.vie = self.vie_max
+        self.detruit = False
 
 
 chateau = Chateau()
@@ -192,18 +247,21 @@ class Sprite:
 
 slimes = [Sprite("slime") for i in range(5)]
 random.seed(tm.time())
-slimes_x_pos = [random.randint(1500, 1800) for slime in slimes]  # 1920, 2600
+slimes_x_pos = [random.randint(1700, 2500) for slime in slimes]  # 1920, 2600
 slimes_y = 825
 for i in range(len(slimes)):  # Mettre à jour les rect des slimes une première fois
     slimes[i].maj_rect(slimes_x_pos[i], slimes_y)
 slimes_x_deplacement = [random.choice([x / 10 for x in range(-40, -10)]) for slime in slimes]  # Pour avoir des vitesses entre -4.0 et -1.0
 
 oiseaux = [Sprite("bird") for i in range(5)]
-oiseaux_x_pos = [random.randint(1500, 1800) for oiseau in oiseaux]
-oiseaux_y = 600
+oiseaux_x_pos = [random.randint(1700, 2500) for oiseau in oiseaux]
+oiseaux_y = [random.randint(600, 675) for oiseau in oiseaux]
 for i in range(len(slimes)):
-    oiseaux[i].maj_rect(oiseaux_x_pos[i], oiseaux_y)
+    oiseaux[i].maj_rect(oiseaux_x_pos[i], oiseaux_y[i])
 oiseaux_x_deplacement = [random.choice([x / 10 for x in range(-60, -30)]) for oiseau in oiseaux]
+
+experience = 0
+experience_max = 100
 
 
 class Arrow(object):
@@ -327,7 +385,7 @@ def redraw():
         slimes[i].afficher(slimes_x_pos[i], slimes_y)
 
     for i in range(len(oiseaux)):
-        oiseaux[i].afficher(oiseaux_x_pos[i], oiseaux_y)
+        oiseaux[i].afficher(oiseaux_x_pos[i], oiseaux_y[i])
 
 
 bow_x = perso_x + 40
@@ -362,323 +420,412 @@ particle_disperion = 0
 hit = False
 laser = False
 
-# Variable de conditionnement, pour arrêter le programme on passera cette variable à false
+# Variable de conditionnement : pour arrêter le programme on passera cette variable à false
 running = True
+
 movement = False
-defaite = False
+
+jeu_lance = False
+jeu_pause = False
 
 while running:
-    pos = pygame.mouse.get_pos()
-    if drawline:
-        line = [initial_pos, pos]
-        distance = sqrt((initial_pos[0] - pos[0]) ** 2 + (initial_pos[1] - pos[1]) ** 2)
+    if jeu_lance and not jeu_pause:  # Si le jeu est en cours
+        if not chateau.detruit:
+            pos = pygame.mouse.get_pos()
+            if drawline:
+                line = [initial_pos, pos]
+                distance = sqrt((initial_pos[0] - pos[0]) ** 2 + (initial_pos[1] - pos[1]) ** 2)
 
-        # Gère le bandage de l'arc
-        if 0 <= distance < 250:
-            bow_image = bow_images[0]
-        elif 250 <= distance < 500:
-            bow_image = bow_images[1]
-        elif 500 <= distance < 750:
-            bow_image = bow_images[2]
-        elif 750 <= distance:
-            bow_image = bow_images[3]
-    redraw()
+                # Gère le bandage de l'arc
+                if 0 <= distance < 250:
+                    bow_image = bow_images[0]
+                elif 250 <= distance < 500:
+                    bow_image = bow_images[1]
+                elif 500 <= distance < 750:
+                    bow_image = bow_images[2]
+                elif 750 <= distance:
+                    bow_image = bow_images[3]
+            redraw()
 
-    if laser_arrow_init:
-        for particle in charging_particles:
-            screen.fill((255, 0, 0), ((particle.x, particle.y), (particle.size, particle.size)))
-            particle.radius -= 3
-            particle.size -= 0.5
-            particle.generate_x_y(particle.radius, particle.angle)
-            if particle.size == 0 or particle.radius < 0:
-                if particle.max_radius > 13:
-                    particle.max_radius -= 3
-                else:
-                    charge_complete = True
-                charging_particles[charging_particles.index(particle)] = Particle(particle.max_radius)
-    if particle_disperion:
-        for particle in charging_particles:
-            screen.fill((255, 0, 0), ((particle.x, particle.y), (particle.size, particle.size)))
-            particle.radius += 3
-            particle.size -= 0.3
-            particle.generate_x_y(particle.radius, particle.angle)
+            if laser_arrow_init:
+                for particle in charging_particles:
+                    screen.fill((255, 0, 0), ((particle.x, particle.y), (particle.size, particle.size)))
+                    particle.radius -= 3
+                    particle.size -= 0.5
+                    particle.generate_x_y(particle.radius, particle.angle)
+                    if particle.size == 0 or particle.radius < 0:
+                        if particle.max_radius > 13:
+                            particle.max_radius -= 3
+                        else:
+                            charge_complete = True
+                        charging_particles[charging_particles.index(particle)] = Particle(particle.max_radius)
+            if particle_disperion:
+                for particle in charging_particles:
+                    screen.fill((255, 0, 0), ((particle.x, particle.y), (particle.size, particle.size)))
+                    particle.radius += 3
+                    particle.size -= 0.3
+                    particle.generate_x_y(particle.radius, particle.angle)
 
-    if arrow_rain_init:
-        competence_active = 1
-        arrow_rain_number = random.randint(40, 50)
-        falling_arrows = []
-        for i in range(arrow_rain_number):
-            falling_arrows.append(Arrow(ground_x - 2 * random.randint(50, 400), -random.randint(80, 1000), rot_center(pygame.image.load("Images/Arc/phlaitche-1.png"), 250).convert_alpha(), 0, 100))
-        arrow_rain_active = True
-        arrow_rain_init = 0
-        arrow_speed = []
+        if arrow_rain_init:
+            competence_active = 1
+            arrow_rain_number = random.randint(40, 50)
+            falling_arrows = []
+            for i in range(arrow_rain_number):
+                falling_arrows.append(Arrow(ground_x - 2 * random.randint(50, 400), -random.randint(80, 1000), rot_center(pygame.image.load("Images/Arc/phlaitche-1.png"), 250).convert_alpha(), 0, 100))
+            arrow_rain_active = True
+            arrow_rain_init = 0
+            arrow_speed = []
 
-    if arrow_rain_active:
-        for arrow in falling_arrows:
-            screen.blit(arrow.image, (arrow.x, arrow.y))
-            arrow.x += 10
-            arrow.y += 30
-            if arrow.y > 925:
-                grounded_arrows.append([arrow.image, arrow.x, arrow.y])
-                falling_arrows.remove(arrow)
+        if arrow_rain_active:
+            for arrow in falling_arrows:
+                screen.blit(arrow.image, (arrow.x, arrow.y))
+                arrow.x += 10
+                arrow.y += 30
+                if arrow.y > 925:
+                    grounded_arrows.append([arrow.image, arrow.x, arrow.y])
+                    falling_arrows.remove(arrow)
 
-            for falling_arrow in falling_arrows:
-                falling_arrow.maj_rect(falling_arrow.x, falling_arrow.y)
-
-            slimes_a_supprimer = -1
-            oiseaux_a_supprimer = -1
-
-            for i in range(len(slimes)):
                 for falling_arrow in falling_arrows:
-                    if pygame.Rect.colliderect(falling_arrow.rect, slimes[i].rect[slimes[i].frame]):
-                        slimes_a_supprimer = i
-            for i in range(len(oiseaux)):
-                for falling_arrow in falling_arrows:
-                    if pygame.Rect.colliderect(falling_arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
-                        oiseaux_a_supprimer = i
+                    falling_arrow.maj_rect(falling_arrow.x, falling_arrow.y)
 
-            if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
-                del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
-                del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
                 slimes_a_supprimer = -1
-
-            if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
-                del oiseaux[oiseaux_a_supprimer]  # On supprime le slime correspondant
-                del oiseaux_x_pos[oiseaux_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
                 oiseaux_a_supprimer = -1
 
-        if not falling_arrows:
-            arrow_rain_active = False
-            arrow_rain = 0
-            competence_active = 0
-
-    if len(grounded_arrows) > 50:
-        grounded_arrows.pop(0)
-
-    if shoot:
-        time += 0.25
-        hit = False
-        for arrow in arrows_list:
-            arrow_number = arrows_list.index(arrow)
-            # Collisions avec les slimes
-
-            slimes_a_supprimer = -1
-
-            for i in range(len(slimes)):
-                if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]):
-                    slimes_a_supprimer = i  # On garde l'indice du slime à supprimer
-
-            if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
-                hit = True  # On arrête les calculs de tir (trajectoires etc...)
-                shoot = False
-                del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
-                del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
-                slimes_a_supprimer = -1
-
-            oiseaux_a_supprimer = -1
-
-            for i in range(len(oiseaux)):
-                if pygame.Rect.colliderect(arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
-                    oiseaux_a_supprimer = i  # On garde l'indice du slime à supprimer
-                if arrow_rain_active:
+                for i in range(len(slimes)):
                     for falling_arrow in falling_arrows:
-                        print("ok")
                         if pygame.Rect.colliderect(falling_arrow.rect, slimes[i].rect[slimes[i].frame]):
                             slimes_a_supprimer = i
+                for i in range(len(oiseaux)):
+                    for falling_arrow in falling_arrows:
+                        if pygame.Rect.colliderect(falling_arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
+                            oiseaux_a_supprimer = i
 
-            if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
-                hit = True  # On arrête les calculs de tir (trajectoires etc...)
-                shoot = False
-                del oiseaux[oiseaux_a_supprimer]  # On supprime le slime correspondant
-                del oiseaux_x_pos[oiseaux_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
-                oiseaux_a_supprimer = -1
+                if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                    del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
+                    del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
+                    slimes_a_supprimer = -1
 
-            if -500 < arrow.y < 925 and -64 < arrow.x < 1952 and not hit:
-                position = arrow.arrow_path(initial_bow_x, initial_bow_y, arrow.power, arrow.angle, time)
-                arrow_angle[f"arrow_angle_{arrow_number}"] = find_angle((arrow.x, arrow.y), (position[0], position[1]))
-                if f"old_angle_{arrow_number}" in arrow_angle:
-                    new_arrow_angle = (arrow_angle[f"arrow_angle_{arrow_number}"] + arrow_angle[f"old_angle_{arrow_number}"]) / 2
-                arrow.x = position[0]
-                arrow.y = position[1]
-                arrow_angle[f"old_angle_{arrow_number}"] = arrow_angle[f"arrow_angle_{arrow_number}"]
-                # Gère la rotation de la flèche
-                arrow_angle[f"rotated_arrow_{arrow_number}"] = rot_center(arrow.image, new_arrow_angle - 45).convert_alpha()
-                screen.blit(arrow_angle[f"rotated_arrow_{arrow_number}"], (arrow.x, arrow.y))
+                if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                    del oiseaux[oiseaux_a_supprimer]  # On supprime le slime correspondant
+                    del oiseaux_x_pos[oiseaux_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
+                    oiseaux_a_supprimer = -1
 
-                # Gère la trainée de la flèche
-                if charge_complete:
-                    separation_x = (arrow.x - old_arrow[0]) / 100
-                    separation_y = (arrow.y - old_arrow[1]) / 100
-                    for i in range(1, 100):
-                        for j in range(-1, 2):
-                            arrow.trainee.append([(200, 0, 0), (arrow.x + 32 + separation_x * i + j * 2, arrow.y + 32 + separation_y*i + j * 2)])
-                            if len(arrow.trainee) > 2000:
-                                arrow.trainee.pop(0)
-                    old_arrow = [arrow.x, arrow.y]
-                else:
-                    arrow.trainee.append([(235, 138, 126), (arrow.x + 32, arrow.y + 32)])
-                    if len(arrow.trainee) > 15:
-                        arrow.trainee.pop(0)
-            elif arrow.x >= 1952 or arrow.x <= -64 or arrow.y < -500 or arrow.y > 940:
-                if not arrow_split_ability == 2:
-                    charge_complete = False
-                    laser = False
-                    arrow.x = bow_x
-                    arrow.y = bow_y
-                    arrow.trainee = []
-                    shoot = False
-            else:
-                if not arrow_split_ability and not hit:
-                    grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
-                    shoot = False
+            if not falling_arrows:
+                arrow_rain_active = False
+                arrow_rain = 0
+                competence_active = 0
 
-                # SI la compétence "splitting arrows" est active, séparer les flèches en deux à l'impact
-                if arrow_split_ability == 1:
-                    shoot = True
-                    hit = False
-                    arrows_list.append(Arrow(arrow.x, 925 - 10, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), new_arrow_angle, arrow.power / 1.6))
-                    arrow.y = arrow.y - 20
-                    arrow.power /= 1.5
-                    time = 0
-                    initial_bow_x = arrow.x
-                    initial_bow_y = arrow.y
-                    angle = 360 - new_arrow_angle
-                    arrow_split_ability += 1
-                elif arrow_split_ability == 2:  # Une fois qu'une des flèches split touche le sol
-                    shoot = True
-                    fallen_arrow += 1
-                    if not hit:
-                        grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
-                    arrows_list.remove(arrow)
-                    arrow_split_ability = 0
+            if len(grounded_arrows) > 50:
+                grounded_arrows.pop(0)
 
-                # Si la compétence "Arrow rain" est active, dessiner une cible au sol et faire pleuvoir des flèches depuis le haut de l'écran
-                if arrow_rain:
-                    arrow_rain_init = True
-                    ground_x = arrow.x
-                    ground_y = arrow.y + 32
-                    width = 100
-                    height = 50
+            if shoot:
+                time += 0.25
+                hit = False
+                for arrow in arrows_list:
+                    arrow_number = arrows_list.index(arrow)
+                    # Collisions avec les slimes
 
-                if laser:
-                    shoot = True
-                else:
-                    arrow.x = bow_x
-                    arrow.y = bow_y
-                    arrow.trainee = []
+                    slimes_a_supprimer = -1
 
-            arrow.maj_rect(arrow.x, arrow.y)
+                    # Suppression des slimes
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+                    for i in range(len(slimes)):
+                        if pygame.Rect.colliderect(arrow.rect, slimes[i].rect[slimes[i].frame]):
+                            slimes_a_supprimer = i  # On garde l'indice du slime à supprimer
 
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                running = False
-            if event.key == pygame.K_d and perso_x < 1920 - 128:  # On ne peut pas démarrer un déplacement au bord de l'écran vers l'extérieur
-                movement = "Droite"
-                perso_x_deplacement = 7.5
-            if event.key == pygame.K_q and perso_x > 0:
-                movement = "Gauche"
-                perso_x_deplacement = -7.5
-            if shoot == False:
-                if event.key == pygame.K_1 and 0 in active_competences:
-                    arrow_rain, laser_arrow = 0, 0
-                    arrow_split_ability = 1
-                if event.key == pygame.K_2 and 1 in active_competences:
-                    arrow_split_ability, laser_arrow = 0, 0
-                    arrow_rain = 1
-                if event.key == pygame.K_3 and 2 in active_competences:
-                    arrow_split_ability, arrow_rain = 0, 0
-                    laser_arrow = 1
+                    if slimes_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
+                        hit = True  # On arrête les calculs de tir (trajectoires etc...)
+                        shoot = False
+                        del slimes[slimes_a_supprimer]  # On supprime le slime correspondant
+                        del slimes_x_pos[slimes_a_supprimer]  # Ainsi que sa position (sinon tous les slimes se décalent)
+                        # On rajoute un slime à la fin
+                        slimes.append(Sprite("slime"))
+                        slimes_x_pos.append(random.randint(1700, 2500))
+                        slimes[len(slimes) - 1].maj_rect(slimes_x_pos[i], slimes_y)
+                        slimes_x_deplacement[len(slimes_x_deplacement) - 1] = random.choice([x / 10 for x in range(-60, -30)])
 
+                        experience += 1
+                        slimes_a_supprimer = -1
 
-        """if event.type == pygame.KEYUP:
-            if event.key == pygame.K_d and movement == "Droite":
-                movement = ""
-                perso_x_deplacement = 0
-            if event.key == pygame.K_q and movement == "Gauche":
-                movement = ""
-                perso_x_deplacement = 0"""
+                    oiseaux_a_supprimer = -1
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if not shoot and not competence_active:
-                charge_complete = False
-                drawline = True
-                initial_pos = pygame.mouse.get_pos()
+                    # Suppression des oiseaux
 
-                # Si la compétence "Laser arrow" est active, tirer une flèche enn ligne droite avec une trainée rouge qui traverse les ennemis
-                if laser_arrow:
-                    laser_arrow_init = 1
-                    particle_disperion = False
-                    max_radius = 60
-                    charging_particles = []
-                    for i in range(50):
-                        charging_particles.append(Particle(max_radius))
-                    laser_arrow = 0
+                    for i in range(len(oiseaux)):
+                        if pygame.Rect.colliderect(arrow.rect, oiseaux[i].rect[oiseaux[i].frame]):
+                            oiseaux_a_supprimer = i
 
-        if event.type == pygame.MOUSEBUTTONUP:
-            if not shoot and drawline:
-                drawline = False
-                bow_image = bow_images[0]
-                initial_bow_x = bow_x
-                initial_bow_y = bow_y
-                arrows_list[0].angle = find_angle(initial_pos, pos)
-                shoot = True
-                time = 0
+                    if oiseaux_a_supprimer != -1:
+                        hit = True
+                        shoot = False
+                        del oiseaux[oiseaux_a_supprimer]
+                        del oiseaux_x_pos[oiseaux_a_supprimer]
+                        # On rajoute un oiseau à la fin
+                        oiseaux.append(Sprite("bird"))
+                        oiseaux_x_pos.append(random.randint(1700, 2500))
+                        oiseaux[len(slimes) - 1].maj_rect(oiseaux_x_pos[i], oiseaux_y[i])
+                        oiseaux_x_deplacement[len(oiseaux_x_deplacement) - 1] = random.choice([x / 10 for x in range(-60, -30)])
 
-                if laser_arrow_init:
+                        experience += 1
+                        oiseaux_a_supprimer = -1
+
+                if -500 < arrow.y < 925 and -64 < arrow.x < 1952 and not hit:
+                    position = arrow.arrow_path(initial_bow_x, initial_bow_y, arrow.power, arrow.angle, time)
+                    arrow_angle[f"arrow_angle_{arrow_number}"] = find_angle((arrow.x, arrow.y), (position[0], position[1]))
+                    if f"old_angle_{arrow_number}" in arrow_angle:
+                        new_arrow_angle = (arrow_angle[f"arrow_angle_{arrow_number}"] + arrow_angle[f"old_angle_{arrow_number}"]) / 2
+                    arrow.x = position[0]
+                    arrow.y = position[1]
+                    arrow_angle[f"old_angle_{arrow_number}"] = arrow_angle[f"arrow_angle_{arrow_number}"]
+                    # Gère la rotation de la flèche
+                    arrow_angle[f"rotated_arrow_{arrow_number}"] = rot_center(arrow.image, new_arrow_angle - 45).convert_alpha()
+                    screen.blit(arrow_angle[f"rotated_arrow_{arrow_number}"], (arrow.x, arrow.y))
+
+                    # Gère la trainée de la flèche
                     if charge_complete:
-                        old_arrow = [initial_bow_x, initial_bow_y]
-                        arrows_list[0].power = 500
-                        charging_particles = []
-                        laser = True
+                        separation_x = (arrow.x - old_arrow[0]) / 100
+                        separation_y = (arrow.y - old_arrow[1]) / 100
+                        for i in range(1, 100):
+                            for j in range(-1, 2):
+                                arrow.trainee.append([(200, 0, 0), (arrow.x + 32 + separation_x * i + j * 2, arrow.y + 32 + separation_y*i + j * 2)])
+                                if len(arrow.trainee) > 2000:
+                                    arrow.trainee.pop(0)
+                        old_arrow = [arrow.x, arrow.y]
+                    else:
+                        arrow.trainee.append([(235, 138, 126), (arrow.x + 32, arrow.y + 32)])
+                        if len(arrow.trainee) > 15:
+                            arrow.trainee.pop(0)
+                elif arrow.x >= 1952 or arrow.x <= -64 or arrow.y < -500 or arrow.y > 940:
+                    if not arrow_split_ability == 2:
+                        charge_complete = False
+                        laser = False
+                        arrow.x = bow_x
+                        arrow.y = bow_y
+                        arrow.trainee = []
+                        shoot = False
+                else:
+                    if not arrow_split_ability and not hit:
+                        grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
+                        shoot = False
+
+                        # SI la compétence "splitting arrows" est active, séparer les flèches en deux à l'impact
+                        if arrow_split_ability == 1:
+                            shoot = True
+                            hit = False
+                            arrows_list.append(Arrow(arrow.x, 925 - 10, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), new_arrow_angle, arrow.power / 1.6))
+                            arrow.y = arrow.y - 20
+                            arrow.power /= 1.5
+                            time = 0
+                            initial_bow_x = arrow.x
+                            initial_bow_y = arrow.y
+                            angle = 360 - new_arrow_angle
+                            arrow_split_ability += 1
+                        elif arrow_split_ability == 2:  # Une fois qu'une des flèches split touche le sol
+                            shoot = True
+                            fallen_arrow += 1
+                            if not hit:
+                                grounded_arrows.append([arrow_angle[f"rotated_arrow_{arrow_number}"], arrow.x, arrow.y])
+                            arrows_list.remove(arrow)
+                            arrow_split_ability = 0
+
+                        # Si la compétence "Arrow rain" est active, dessiner une cible au sol et faire pleuvoir des flèches depuis le haut de l'écran
+                        if arrow_rain:
+                            arrow_rain_init = True
+                            ground_x = arrow.x
+                            ground_y = arrow.y + 32
+                            width = 100
+                            height = 50
+
+                    if laser:
+                        shoot = True
+                    else:
+                        arrow.x = bow_x
+                        arrow.y = bow_y
+                        arrow.trainee = []
+
+                    arrow.maj_rect(arrow.x, arrow.y)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+                    if event.key == pygame.K_d and perso_x < 1920 - 128:  # On ne peut pas démarrer un déplacement au bord de l'écran vers l'extérieur
+                        movement = "Droite"
+                        perso_x_deplacement = 7.5
+                    if event.key == pygame.K_q and perso_x > 0:
+                        movement = "Gauche"
+                        perso_x_deplacement = -7.5
+                    if shoot == False:
+                        if event.key == pygame.K_1 and 0 in active_competences:
+                            arrow_rain, laser_arrow = 0, 0
+                            arrow_split_ability = 1
+                        if event.key == pygame.K_2 and 1 in active_competences:
+                            arrow_split_ability, laser_arrow = 0, 0
+                            arrow_rain = 1
+                        if event.key == pygame.K_3 and 2 in active_competences:
+                            arrow_split_ability, arrow_rain = 0, 0
+                            laser_arrow = 1
+
+
+                """if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_d and movement == "Droite":
+                        movement = ""
+                        perso_x_deplacement = 0
+                    if event.key == pygame.K_q and movement == "Gauche":
+                        movement = ""
+                        perso_x_deplacement = 0"""
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+
+                    if boutons_pause.pointe:
+                        jeu_pause = True
+                    elif boutons_quit.pointe:
+                        running = False
+
+                    if not shoot and not competence_active and not jeu_pause:
+                        charge_complete = False
+                        drawline = True
+                        initial_pos = pygame.mouse.get_pos()
+
+                        # Si la compétence "Laser arrow" est active, tirer une flèche enn ligne droite avec une trainée rouge qui traverse les ennemis
+                        if laser_arrow:
+                            laser_arrow_init = 1
+                            particle_disperion = False
+                            max_radius = 60
+                            charging_particles = []
+                            for i in range(50):
+                                charging_particles.append(Particle(max_radius))
+                            laser_arrow = 0
+
+            if event.type == pygame.MOUSEBUTTONUP:
+                if not shoot and drawline:
+                    drawline = False
+                    bow_image = bow_images[0]
+                    initial_bow_x = bow_x
+                    initial_bow_y = bow_y
+                    arrows_list[0].angle = find_angle(initial_pos, pos)
+                    shoot = True
+                    time = 0
+
+                    if laser_arrow_init:
+                        if charge_complete:
+                            old_arrow = [initial_bow_x, initial_bow_y]
+                            arrows_list[0].power = 500
+                            charging_particles = []
+                            laser = True
+                        else:
+                            arrows_list[0].power = (sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6)
+                            for i in range(50):
+                                charging_particles[i] = (Particle(max_radius))
+                            particle_disperion = 1
+                        laser_arrow_init = 0
                     else:
                         arrows_list[0].power = (sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6)
-                        for i in range(50):
-                            charging_particles[i] = (Particle(max_radius))
-                        particle_disperion = 1
-                    laser_arrow_init = 0
-                else:
-                    arrows_list[0].power = (sqrt((line[1][1] - line[0][1]) ** 2 + (line[1][0] - line[0][0]) ** 2) / 6)
 
-    if laser_arrow_init:
-        movement = ""
-        perso_x_deplacement = 0
+            if laser_arrow_init:
+                movement = ""
+                perso_x_deplacement = 0
 
-    if chateau.vie < 25 / 100 * chateau.vie_max:
-        perso_x = chateau_x + 20
-        perso_y = 825
-        bow_y = perso_y + 50
+            if chateau.vie < 25 / 100 * chateau.vie_max:
+                perso_x = chateau_x + 20
+                perso_y = 825
+                bow_y = perso_y + 50
 
-    """if perso_x > 1920 - 128:  # Replacer le perso s'il sort
-        perso_x_deplacement = 0
-        perso_x = 1920 - 128
-    if perso_x < 0:
-        perso_x_deplacement = 0
-        perso_x = 0"""
+            """if perso_x > 1920 - 128:  # Replacer le perso s'il sort
+                perso_x_deplacement = 0
+                perso_x = 1920 - 128
+            if perso_x < 0:
+                perso_x_deplacement = 0
+                perso_x = 0"""
 
-    for i in range(len(slimes)):
-        slimes_x_pos[i] += slimes_x_deplacement[i]
-        slimes[i].maj_rect(slimes_x_pos[i], slimes_y)  # Mettre à jour les rect des slimes
-        if pygame.Rect.colliderect(chateau.rect, slimes[i].rect[slimes[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
-            slimes_x_pos[i] += 100
-            chateau.vie -= 10
+            for i in range(len(slimes)):
+                slimes_x_pos[i] += slimes_x_deplacement[i]
+                slimes[i].maj_rect(slimes_x_pos[i], slimes_y)  # Mettre à jour les rect des slimes
+                if pygame.Rect.colliderect(chateau.rect, slimes[i].rect[slimes[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
+                    slimes_x_pos[i] += 100
+                    chateau.vie -= 10
 
-    for i in range(len(oiseaux)):
-        oiseaux_x_pos[i] += oiseaux_x_deplacement[i]
-        oiseaux[i].maj_rect(oiseaux_x_pos[i], oiseaux_y)  # Mettre à jour les rect des slimes
-        if pygame.Rect.colliderect(chateau.rect, oiseaux[i].rect[oiseaux[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
-            oiseaux_x_pos[i] += 100
-            chateau.vie -= 10
+            for i in range(len(oiseaux)):
+                oiseaux_x_pos[i] += oiseaux_x_deplacement[i]
+                oiseaux[i].maj_rect(oiseaux_x_pos[i], oiseaux_y[i])  # Mettre à jour les rect des slimes
+                if pygame.Rect.colliderect(chateau.rect, oiseaux[i].rect[oiseaux[i].frame]):  # Faire se déplacer les ennemis à droite quand ils touchent le château
+                    oiseaux_x_pos[i] += 100
+                    chateau.vie -= 10
 
-    if chateau.vie <= 0:
-        defaite = True
-        slimes = []
-        oiseaux = []
+            if chateau.vie <= 0:
+                # todo retirer la flèche
+                slimes_x_deplacement = [x_deplacement for x_deplacement in slimes_x_deplacement]
+                oiseaux_x_deplacement = [x_deplacement for x_deplacement in oiseaux_x_deplacement]
+                chateau.destruction()
+                slimes = []
+                oiseaux = []
+
+            if experience > experience_max:  # Limite d'XP
+                experience = experience_max
+
+            boutons_pause.afficher()
+            boutons_quit.afficher()
+
+        else:
+            screen.blit(background_image, (background_x, 0))
+            font = pygame.font.Font("freesansbold.ttf", 64)
+            screen.blit(font.render(f"Vous avez perdu...", True, (255, 255, 255)), (500, 950))
+
+            boutons_play_again.afficher()
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN and boutons_play_again.pointe:
+                    chateau.vie = chateau.vie_max
+                    chateau.detruit = False
+
+                    perso_x = chateau_x + 50
+                    perso_y = chateau_y + 225  # 825
+                    bow_x = perso_x + 40
+                    bow_y = perso_y + 50
+
+                    # Recréation des ennemis
+
+                    slimes = [Sprite("slime") for i in range(5)]
+                    random.seed(tm.time())
+                    slimes_x_pos = [random.randint(1700, 2500) for slime in slimes]  # 1920, 2600
+                    slimes_y = 825
+                    for i in range(len(slimes)):  # Mettre à jour les rect des slimes une première fois
+                        slimes[i].maj_rect(slimes_x_pos[i], slimes_y)
+                    slimes_x_deplacement = [random.choice([x / 10 for x in range(-40, -10)]) for slime in slimes]  # Pour avoir des vitesses entre -4.0 et -1.0
+
+                    oiseaux = [Sprite("bird") for i in range(5)]
+                    oiseaux_x_pos = [random.randint(1700, 2500) for oiseau in oiseaux]
+                    oiseaux_y = [random.randint(600, 675) for oiseau in oiseaux]
+                    for i in range(len(slimes)):
+                        oiseaux[i].maj_rect(oiseaux_x_pos[i], oiseaux_y[i])
+                    oiseaux_x_deplacement = [random.choice([x / 10 for x in range(-60, -30)]) for oiseau in oiseaux]
+
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+
+    elif jeu_lance and jeu_pause:
         screen.blit(background_image, (background_x, 0))
-        font = pygame.font.Font("freesansbold.ttf", 64)
-        screen.blit(font.render(f"Vous avez perdu...", True, (255, 255, 255)), (pygame.display.get_window_size()[0] / 2 - 300, pygame.display.get_window_size()[1] / 2 - 32))
+        boutons_resume.afficher()
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN and boutons_resume.pointe:
+                jeu_pause = False
+
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+
+    else:
+        screen.blit(background_image, (background_x, 0))
+        boutons_play.afficher()
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN and boutons_play.pointe:
+                jeu_lance = True
+
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
 
     pygame.display.update()
