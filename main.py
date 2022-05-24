@@ -57,9 +57,12 @@ class Bouton:
 
 boutons_play = Bouton("Bouton_play", (842, 512), (236, 56))  # 118x28 (118x24) sans les pixels transparents
 boutons_pause = Bouton("Bouton_rond_pause", (1864, 0), (56, 56))  # 28x28
-boutons_resume = Bouton("Bouton_resume", (842, 512), (236, 56))  # 118x28
+boutons_resume = Bouton("Bouton_resume", (842, 300), (236, 56))  # 118x28
 boutons_quit = Bouton("Bouton_quit", (1684, 1024), (236, 56))  # 118x28
 boutons_play_again = Bouton("Bouton_play_again", (842, 512), (236, 56))  # 118x28
+boutons_competence_1 = Bouton("Bouton_comp_1", (525, 500), (256, 256))
+boutons_competence_2 = Bouton("Bouton_comp_2", (825, 500), (256, 256))
+boutons_competence_3 = Bouton("Bouton_comp_3", (1125, 500), (256, 256))
 
 
 class Chateau:
@@ -344,6 +347,12 @@ def redraw():
                     screen.fill(trainee[0], (trainee[1], (size, size)))
                     size += 0.5
 
+    font = pygame.font.Font("freesansbold.ttf", 40)
+    screen.blit(font.render(f"xp:", True, (0, 0, 0)), (780, 5))
+    if competence_point:
+        font = pygame.font.Font("freesansbold.ttf", 30)
+        screen.blit(font.render(f"+ {competence_point} pt de compétence à dépenser", True, (200, 0, 0)), (780, 50))
+
     # Creation de la cible pour la compétence "Arrow rain"
 
     if drawline:
@@ -361,13 +370,13 @@ def redraw():
 
     # animation d'ouverture du parchemin de competences
     screen.blit(debut_barre_competence, (5, 5))
-    if debut:
-        fin_barre = 5
-        for i in range(len(active_competences)):
-            for j in range(len(barre_competence)):
-                screen.blit(barre_competence[i], (33 + 84 * i, 5))
-            screen.blit(competences_images[active_competences[i]], (37 + 84 * i, 41))
-        screen.blit(fin_barre_competence, (21 + 84 * (i + 1), 5))
+    fin_barre = 5
+    i = -1
+    for i in range(len(active_competences)):
+        for j in range(len(barre_competence)):
+            screen.blit(barre_competence[i], (33 + 84 * i, 5))
+        screen.blit(competences_images[active_competences[i]], (37 + 84 * i, 41))
+    screen.blit(fin_barre_competence, (21 + 84 * (i + 1), 5))
 
     for i in range(len(slimes)):
         slimes[i].afficher(slimes_x_pos[i], slimes_y)
@@ -399,21 +408,25 @@ bow_image = bow_images[0]
 # [pygame.image.load(f).convert_alpha() for f in glob("Images/aptitude_bar/parchemin_?.png")]
 arrows_list = [Arrow(bow_x, bow_y, pygame.image.load("Images/Arc/phlaitche-1.png").convert_alpha(), 0, 0)]
 competences_images = [pygame.image.load(f).convert_alpha() for f in glob("Images/aptitude_bar/competence_?.png")]
-debut_barre_competence = pygame.image.load("Images/aptitude_bar/debut_parchemin.png")
+debut_barre_competence = pygame.image.load("Images/aptitude_bar/debut_parchemin.png").convert_alpha()
 barre_competence = [pygame.image.load(f).convert_alpha() for f in glob("Images/aptitude_bar/parchemin_infini_?.png")]
-fin_barre_competence = pygame.image.load("Images/aptitude_bar/fin_parchemin.png")
+fin_barre_competence = pygame.image.load("Images/aptitude_bar/fin_parchemin.png").convert_alpha()
+Titre_image = pygame.transform.scale(pygame.image.load("Images/Titre.png").convert_alpha(), (800, 200))
 power = 0
+competence_point = 0
 arrow_angle = {}
 new_arrow_angle = 0
 fallen_arrow = 0
 shoot = False
 debut = True
+level_up = 0
 outline_size = 10
 grounded_arrows = []
 competence_active = 0
-active_competences = [0, 1, 2]
+active_competences = []
 arrow_split_ability = 0
 arrow_rain = 0
+arrow_rain_level = 0
 laser_arrow = 0
 arrow_rain_active = 0
 arrow_rain_init = 0
@@ -424,6 +437,9 @@ arrow_trainee_rects = []
 particle_dispertion = 0
 hit = False
 laser = False
+max_xp = 10
+level_up = 1
+MAXED = []
 
 # Variable de conditionnement : pour arrêter le programme on passera cette variable à false
 running = True
@@ -452,6 +468,14 @@ while running:
                     bow_image = bow_images[3]
             redraw()
 
+            # Barre d'xp
+            if experience == max_xp:
+                experience = 0
+                max_xp += 5
+                competence_point += 1
+            pygame.draw.line(screen, (0, 100, 0), (850, 25), (850 + experience * (200/max_xp), 25), 20)
+            pygame.draw.rect(screen, (0, 0, 0), ((850, 12), (200, 27)), 5)
+
             if laser_arrow_init:
                 for particle in charging_particles:
                     screen.fill((255, 0, 0), ((particle.x, particle.y), (particle.size, particle.size)))
@@ -473,7 +497,7 @@ while running:
 
             if arrow_rain_init:
                 competence_active = 1
-                arrow_rain_number = random.randint(25, 30)
+                arrow_rain_number = random.randint(arrow_rain_level, arrow_rain_level+5)
                 falling_arrows = []
                 for i in range(arrow_rain_number):
                     falling_arrows.append(Arrow(ground_x - 2 * random.randint(50, 400), -random.randint(80, 1000), rot_center(pygame.image.load("Images/Arc/phlaitche-1.png"), 250).convert_alpha(), 0, 100))
@@ -682,16 +706,20 @@ while running:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         running = False
+                    if event.key == pygame.K_SPACE:
+                        if perso_y == chateau_y + 225:
+                            perso_y = 825
+                        else:
+                            perso_y = chateau_y + 225
+                        bow_y = perso_y + 50
 
                     if event.key == pygame.K_d and perso_x + 100 < chateau_x + largeur_chateau:  # On ne peut pas démarrer un déplacement au bord du château vers l'extérieur
                         movement = "Droite"
                         perso_x_deplacement = 7.5
-                        perso_y = 825
                         bow_y = perso_y + 50
                     if event.key == pygame.K_q and perso_x > chateau_x:
                         movement = "Gauche"
                         perso_x_deplacement = -7.5
-                        perso_y = 825
                         bow_y = perso_y + 50
 
                     if not shoot:
@@ -763,12 +791,12 @@ while running:
                 perso_y = 825
                 bow_y = perso_y + 50
 
-            if perso_x > chateau_x + largeur_chateau - 115:  # Replacer le perso s'il sort
+            if perso_x > chateau_x + largeur_chateau - 175:  # Replacer le perso s'il sort
                 perso_x_deplacement = 0
-                perso_x = chateau_x + largeur_chateau - 115
-            if perso_x < chateau_x:
+                perso_x = chateau_x + largeur_chateau - 175
+            if perso_x < chateau_x + 50:
                 perso_x_deplacement = 0
-                perso_x = chateau_x
+                perso_x = chateau_x + 50
 
             for i in range(len(slimes)):
                 slimes_x_pos[i] += slimes_x_deplacement[i]
@@ -839,11 +867,49 @@ while running:
                         running = False
 
     elif jeu_lance and jeu_pause:
+        font = pygame.font.Font("freesansbold.ttf", 35,)
         screen.blit(background_image, (background_x, 0))
+        screen.blit(font.render(f"{competence_point} points restant à dépenser", True, (0, 200, 0)), (boutons_competence_1.x + 200, 400))
+        screen.blit(font.render(f"Splitting arrow", True, (255, 255, 255)), (boutons_competence_1.x, 756))
+        boutons_competence_1.afficher()
+        screen.blit(font.render(f"Raining arrows", True, (255, 255, 255)), (boutons_competence_2.x, 756))
+        boutons_competence_2.afficher()
+        screen.blit(font.render(f"Laser arrow", True, (255, 255, 255)), (boutons_competence_3.x + 30, 756))
+        boutons_competence_3.afficher()
         boutons_resume.afficher()
+        for value in MAXED:
+            font = pygame.font.Font("freesansbold.ttf", 80)
+            screen.blit(font.render(f"M A X", True, (200, 0, 0)), ( 525 + 10 + value*300, 628))
         for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN and boutons_resume.pointe:
-                jeu_pause = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if boutons_resume.pointe:
+                    jeu_pause = False
+
+                elif boutons_competence_1.pointe and competence_point:
+                    if not 0 in active_competences:
+                        active_competences.append(0)
+                        competence_point -= 1
+                        MAXED.append(0)
+
+                elif boutons_competence_2.pointe and competence_point > 0:
+                    if not 1 in active_competences and arrow_rain_level == 0:
+                        active_competences.append(1)
+                        arrow_rain_level += 5
+                        competence_point -= 1
+                    elif arrow_rain_level < 30:
+                        arrow_rain_level += 5
+                        competence_point -= 1
+                    else:
+                        arrow_rain_level += 5
+                        MAXED.append(1)
+
+                elif boutons_competence_3.pointe and competence_point > 0:
+                    if not 2 in active_competences:
+                        active_competences.append(2)
+                        competence_point -= 1
+                        MAXED.append(2)
+
+
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -851,6 +917,7 @@ while running:
 
     else:
         screen.blit(background_image, (background_x, 0))
+        screen.blit(Titre_image, (boutons_play.x - 250, 300))
         boutons_play.afficher()
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN and boutons_play.pointe:
