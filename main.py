@@ -368,7 +368,7 @@ def redraw():
     # Affichage de la tour
     chateau.afficher()
 
-    # animation d'ouverture du parchemin de competences
+    # ouverture du parchemin de competences
     screen.blit(debut_barre_competence, (5, 5))
     fin_barre = 5
     i = -1
@@ -705,7 +705,7 @@ while running:
 
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        running = False
+                        jeu_pause = True
                     if event.key == pygame.K_SPACE:
                         if perso_y == chateau_y + 225:
                             perso_y = 825
