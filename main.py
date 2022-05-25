@@ -349,6 +349,8 @@ def redraw():
 
     font = pygame.font.Font("freesansbold.ttf", 40)
     screen.blit(font.render(f"xp:", True, (0, 0, 0)), (780, 5))
+    screen.blit(font.render(f"score:", True, (0, 0, 0)), (1100, 5))
+    screen.blit(font.render(f"{score}", True, (0, 0, 0)), (1220, 5))
     if competence_point:
         font = pygame.font.Font("freesansbold.ttf", 30)
         screen.blit(font.render(f"+ {competence_point} pt de compétence à dépenser", True, (200, 0, 0)), (780, 50))
@@ -439,6 +441,7 @@ hit = False
 laser = False
 max_xp = 10
 level_up = 1
+score = 0
 MAXED = []
 
 # Variable de conditionnement : pour arrêter le programme on passera cette variable à false
@@ -539,6 +542,7 @@ while running:
                         slimes_x_deplacement[len(slimes_x_deplacement) - 1] = random.choice([x / 10 for x in range(-60, -30)])
 
                         experience += 1
+                        score += 5
                         slimes_a_supprimer = -1
 
                     if oiseaux_a_supprimer != -1:  # S'il y a au moins un slime à supprimer
@@ -551,6 +555,7 @@ while running:
                         oiseaux_x_deplacement[len(oiseaux_x_deplacement) - 1] = random.choice([x / 10 for x in range(-60, -30)])
 
                         experience += 1
+                        score += 5
                         oiseaux_a_supprimer = -1
 
                 if not falling_arrows:
@@ -593,6 +598,7 @@ while running:
                         slimes_x_deplacement[len(slimes_x_deplacement) - 1] = random.choice([x / 10 for x in range(-60, -30)])
 
                         experience += 1
+                        score += 10
                         slimes_a_supprimer = -1
 
                     oiseaux_a_supprimer = -1
@@ -620,6 +626,7 @@ while running:
                         oiseaux_x_deplacement[len(oiseaux_x_deplacement) - 1] = random.choice([x / 10 for x in range(-60, -30)])
 
                         experience += 1
+                        score += 10
                         oiseaux_a_supprimer = -1
 
                     if -500 < arrow.y < 925 and -64 < arrow.x < 1952 and not hit:
@@ -831,14 +838,20 @@ while running:
             screen.blit(background_image, (background_x, 0))
             font = pygame.font.Font("freesansbold.ttf", 64)
             screen.blit(font.render(f"Vous avez perdu...", True, (255, 255, 255)), (boutons_play_again.x - 150, 350))
+            font = pygame.font.Font("freesansbold.ttf", (50))
+            screen.blit(font.render(f"score final:", True, (255, 255, 255)), (boutons_play_again.x - 80, 700))
+            screen.blit(font.render(f"{score}", True, (255, 255, 255)), (boutons_play_again.x + 220, 700))
 
             boutons_play_again.afficher()
             for event in pygame.event.get():
                 if event.type == pygame.MOUSEBUTTONDOWN and boutons_play_again.pointe:
+                    max_xp = 10
+                    active_competences = []
+                    barre_competence = []
                     chateau.vie = chateau.vie_max
+                    score = 0
                     chateau.detruit = False
                     competence_point = 0
-                    competence_active = []
                     experience = 0
                     MAXED = []
                     perso_x = chateau_x + 50
